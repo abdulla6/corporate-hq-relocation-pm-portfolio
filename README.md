@@ -34,7 +34,7 @@ A complex mathematical dependency network used to construct and protect the proj
 * **Core Mechanisms:** Maps chronological execution trails across parallel tracks. Integrates advanced scheduling logic including **Start-to-Start (SS) relationships with lag allocations** (to run facility fit-outs alongside IT staging) and **Finish-to-Start (FS) gates** for mandatory government permits.
 * **PM Principle:** Designed to automatically calculate and isolate the **Critical Path**, ensuring optimal resource allocation and preventing cascading milestone slip.
 
-### 📋 4. [Requirements Traceability Matrix (RTM) Analytics](https://abdulla6.github.io/corporate-hq-relocation-pm-portfolio/HQ_Relocation_RTM_Full_Analytics.html)
+### 📋 4. [Requirements Traceability Matrix (RTM) Analytics](https://abdulla6.github.io/corporate-hq-relocation-pm-portfolio/HQ_Relocation_RTM_Analytics_Enhanced.html)
 An automated tracking engine built to secure product, business, and operational compliance.
 * **Core Mechanisms:** Links individual high-level stakeholder mandates back to specific WBS components, assigning priority weights, specific operational owners, verification methods, and dynamic budget metrics. 
 * **PM Principle:** Ensures 100% test and delivery validation from project initiation through to final site handoff.
