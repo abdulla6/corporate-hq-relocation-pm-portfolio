@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PDM Network — HQ Relocation</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#F8FAFC;font-family:'Segoe UI',Arial,sans-serif}
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* ── TOP BAR ── */
+#topbar{background:#FFFFFF;border-bottom:2px solid #E2E8F0;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+#topbar h1{color:#1E293B;font-size:14px;font-weight:800;letter-spacing:0.5px}
+#topbar .sub{color:#64748B;font-size:11px;margin-top:3px}
+.tbtn{background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:6px 14px;color:#2563EB;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
+.tbtn:hover{background:#DBEAFE;border-color:#60A5FA;transform:translateY(-1px)}
+.tbtn.active{background:#FEF2F2;border-color:#FCA5A5;color:#DC2626}
+#hint{color:#94A3B8;font-size:10px;margin-left:8px}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;overflow:hidden}
+#cwrap{flex:1;overflow:hidden;cursor:grab;position:relative;background:#F8FAFC}
+#cwrap.drag{cursor:grabbing}
+svg#cv{display:block;width:100%;height:100%}
+
+/* ── OVERLAYS ── */
+#zbadge{position:absolute;bottom:14px;left:16px;background:rgba(255,255,255,0.95);border:1px solid #CBD5E1;border-radius:8px;padding:4px 12px;color:#64748B;font-size:11px;pointer-events:none;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+
+/* ── LEGEND ── */
+#leg{position:absolute;bottom:14px;right:16px;background:rgba(255,255,255,0.97);border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;z-index:5;min-width:220px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+.lt{color:#64748B;font-size:10px;font-weight:800;letter-spacing:1.2px;margin-bottom:10px}
+.lr{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11px;color:#475569}
+.lr:last-child{margin-bottom:0}
+.lsq{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+.lline{flex-shrink:0}
+.pdm-mini{margin-top:12px;border-top:1px solid #E2E8F0;padding-top:10px}
+.pm-box{border:1.5px solid #CBD5E1;border-radius:8px;overflow:hidden;font-size:9px;text-align:center;margin-bottom:3px;background:#FFFFFF}
+.pm-row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #E2E8F0}
+.pm-row:last-child{border-bottom:none}
+.pm-cell{padding:3px 4px;color:#3B82F6;font-weight:700;border-right:1px solid #E2E8F0;background:#F1F5F9}
+.pm-cell:last-child{border-right:none}
+.pm-mid{padding:4px;color:#1E293B;font-weight:800;background:#FFFFFF;font-size:9px;border-bottom:1px solid #E2E8F0}
+.pm-act{padding:3px 5px;color:#15803D;font-size:8px;text-align:left;background:#F0FDF4;border-bottom:1px solid #E2E8F0}
+.pm-del{padding:3px 5px;color:#B45309;font-size:8px;text-align:left;background:#FFFBEB;border-bottom:1px solid #E2E8F0}
+
+/* ── SIDE PANEL ── */
+#panel{width:340px;background:#FFFFFF;border-left:1.5px solid #E2E8F0;display:none;flex-direction:column;overflow-y:auto;flex-shrink:0;box-shadow:-4px 0 16px rgba(0,0,0,0.06)}
+#panel.open{display:flex}
+#phdr{padding:14px 16px 12px;border-bottom:1.5px solid #E2E8F0;position:relative;background:#FAFBFC}
+#pclose{background:none;border:none;color:#94A3B8;font-size:18px;cursor:pointer;position:absolute;right:14px;top:12px;line-height:1;transition:color .15s}
+#pclose:hover{color:#EF4444}
+#pid{font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:4px}
+#ptitle{color:#1E293B;font-size:15px;font-weight:800;line-height:1.3}
+#pwbs{color:#64748B;font-size:11px;margin-top:4px}
+.psec{padding:12px 16px;border-bottom:1.5px solid #E2E8F0}
+.psl{color:#64748B;font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.psl::after{content:"";flex:1;height:1px;background:#E2E8F0}
+.sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px}
+.scell{background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 4px;text-align:center}
+.sv{font-size:18px;font-weight:800}
+.sk{color:#94A3B8;font-size:9px;margin-top:3px}
+.act-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #F1F5F9;font-size:11px;color:#334155;line-height:1.5}
+.act-row:last-child{border-bottom:none}
+.act-num{color:#3B82F6;font-weight:800;font-size:10px;flex-shrink:0;margin-top:2px}
+.del-box{background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:8px;padding:10px 14px;margin-top:5px}
+.del-lbl{color:#15803D;font-size:9px;font-weight:800;letter-spacing:1px;margin-bottom:4px}
+.del-val{color:#166534;font-size:12px;font-weight:700}
+.pert-g{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.pert-cell{background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:6px;padding:6px 3px;text-align:center}
+.pert-v{font-size:15px;font-weight:800}
+.pert-l{color:#94A3B8;font-size:8px}
+.dep-row{background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:6px;padding:6px 10px;margin-bottom:5px;font-size:11px;color:#475569;display:flex;align-items:center;gap:8px}
+.dep-id{font-weight:800;font-size:11px}
+.dep-type{font-size:9px;font-weight:800;padding:2px 8px;border-radius:12px;background:#DBEAFE;color:#2563EB}
+
+/* ── NEW PANEL ENHANCEMENTS ── */
+.status-badge{padding:4px 14px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px}
+.status-Complete{background:#DCFCE7;color:#166534;border:1.5px solid #86EFAC}
+.status-In\ Progress{background:#FEF9C3;color:#854D0E;border:1.5px solid #FDE047}
+.status-Not\ Started{background:#F1F5F9;color:#475569;border:1.5px solid #CBD5E1}
+.prog-wrap{background:#F1F5F9;height:8px;border-radius:6px;overflow:hidden;border:1.5px solid #E2E8F0}
+.prog-fill{height:100%;border-radius:5px;transition:width .4s ease}
+.tl-wrap{position:relative;height:36px;background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:6px;overflow:hidden;margin-bottom:6px}
+.tl-track{position:absolute;top:10px;left:5px;right:5px;height:16px;background:#F1F5F9;border-radius:4px}
+.tl-fill{position:absolute;top:10px;height:16px;border-radius:4px;opacity:0.9}
+.tl-now{position:absolute;top:0;bottom:0;width:2px;background:#EF4444;box-shadow:0 0 8px rgba(239,68,68,0.4)}
+.tl-lbl{display:flex;justify-content:space-between;font-size:10px;color:#94A3B8;margin-top:3px}
+.tl-desc{margin-top:8px;font-size:10px;color:#64748B;line-height:1.6}
+.tl-desc b{color:#1E293B}
+.crit-banner{background:#FEF2F2;border:1.5px solid #FECACA;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#DC2626;font-weight:800}
+.safe-banner{background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#166534;font-weight:800}
+.warn-banner{background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#B45309;font-weight:800}
+
+/* ── BOTTOM BAR ── */
+#botbar{background:#FFFFFF;border-top:1.5px solid #E2E8F0;padding:6px 20px;display:flex;gap:24px;align-items:center;flex-shrink:0;flex-wrap:wrap;box-shadow:0 -2px 8px rgba(0,0,0,0.04)}
+.bp{display:flex;align-items:center;gap:6px}
+.bpn{font-size:14px;font-weight:800}
+.bpl{color:#94A3B8;font-size:10px}
+.bsep{width:1px;height:18px;background:#E2E8F0}
+
+/* ── DEFINITIONS MODAL ── */
+#def-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.5);z-index:100;display:none;align-items:center;justify-content:center}
+#def-overlay.open{display:flex}
+#def-box{width:740px;max-height:90vh;background:#FFFFFF;border:2px solid #E2E8F0;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.15)}
+#def-hdr{background:#F8FAFC;border-bottom:2px solid #E2E8F0;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+#def-hdr h2{color:#1E293B;font-size:15px;font-weight:800;letter-spacing:0.5px}
+#def-close{background:none;border:none;color:#94A3B8;font-size:20px;cursor:pointer;line-height:1;transition:color .15s}
+#def-close:hover{color:#EF4444}
+#def-body{padding:20px 22px;overflow-y:auto;flex:1}
+.def-sec{margin-bottom:18px}
+.def-sec:last-child{margin-bottom:0}
+.def-sec h3{color:#2563EB;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:5px;border-bottom:2px solid #E2E8F0}
+.def-row{display:flex;align-items:baseline;gap:10px;padding:5px 0;font-size:11px;color:#334155;line-height:1.6}
+.def-abbr{color:#F59E0B;font-weight:800;font-size:12px;min-width:60px;flex-shrink:0;font-family:monospace}
+.def-mean{color:#1E293B}
+.def-note{color:#94A3B8;font-size:10px;margin-left:70px;margin-top:2px}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="topbar">
+  <div>
+    <h1>PDM NETWORK DIAGRAM — ACTIVITY SEQUENCING</h1>
+    <div class="sub">HQ Relocation Project &nbsp;·&nbsp; CS Company &nbsp;·&nbsp; 15 Work Packages &nbsp;·&nbsp; Activities &amp; Deliverables &nbsp;·&nbsp; Time-Priority Layout (ES Order)</div>
+  </div>
+  <button class="tbtn" onclick="fitView()">⊡ Fit View</button>
+  <button class="tbtn" id="cpBtn" onclick="toggleCP()">★ Critical Path</button>
+  <button class="tbtn" onclick="clearHL()">✕ Clear</button>
+  <button class="tbtn" onclick="toggleDef()">📖 Definitions</button>
+  <span id="hint">Scroll = zoom &nbsp;·&nbsp; Drag = pan &nbsp;·&nbsp; Click node = full details</span>
+</div>
+<div id="main">
+  <div id="cwrap">
+    <svg id="cv"></svg>
+    <div id="zbadge">100%</div>
+    <div id="leg">
+      <div class="lt">NODE FORMAT (PDM)</div>
+      <div class="pm-box">
+        <div class="pm-row"><div class="pm-cell">ES</div><div class="pm-cell">Dur</div><div class="pm-cell">EF</div></div>
+        <div class="pm-mid">Activity Name</div>
+        <div class="pm-act">• Key activities performed</div>
+        <div class="pm-del">📦 Deliverable output</div>
+        <div class="pm-row"><div class="pm-cell">LS</div><div class="pm-cell">Float</div><div class="pm-cell">LF</div></div>
+      </div>
+      <div class="pdm-mini">
+        <div class="lt">COLOUR KEY</div>
+        <div class="lr"><div class="lsq" style="background:#EF4444"></div>Critical Path (Float = 0)</div>
+        <div class="lr"><div class="lsq" style="background:#3B82F6"></div>Non-Critical Activity</div>
+        <div class="lr"><svg class="lline" width="36" height="10"><line x1="2" y1="5" x2="30" y2="5" stroke="#EF4444" stroke-width="2.5" marker-end="url(#ahc)"/></svg>Critical FS Arrow</div>
+        <div class="lr"><svg class="lline" width="36" height="10"><line x1="2" y1="5" x2="30" y2="5" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="4,3"/></svg>Non-Critical Arrow</div>
+        <div class="lr"><svg class="lline" width="36" height="10"><line x1="2" y1="5" x2="30" y2="5" stroke="#F59E0B" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#aho)"/></svg>SS Relationship</div>
+      </div>
+    </div>
+  </div>
+  <div id="panel">
+    <div id="phdr">
+      <button id="pclose" onclick="closeP()">✕</button>
+      <div id="pid"></div>
+      <div id="ptitle"></div>
+      <div id="pwbs"></div>
+    </div>
+
+    <div class="psec">
+      <div class="psl">STATUS & OWNER</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <span id="p-status-badge" class="status-badge"></span>
+        <span style="color:#94A3B8;font-size:10px;font-weight:800">OWNER</span>
+        <span id="p-owner" style="color:#1E293B;font-size:12px;font-weight:700"></span>
+      </div>
+      <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 10px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#94A3B8;margin-bottom:5px">
+          <span>Estimated Completion</span>
+          <span id="p-pct" style="font-weight:800;color:#1E293B">0%</span>
+        </div>
+        <div class="prog-wrap"><div id="p-bar" class="prog-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="psl">TIMELINE POSITION</div>
+      <div class="tl-wrap">
+        <div class="tl-track"></div>
+        <div id="p-tl-fill" class="tl-fill"></div>
+        <div id="p-tl-now" class="tl-now"></div>
+      </div>
+      <div class="tl-lbl"><span>Wk 0</span><span id="p-tl-mid">Wk 25</span><span>Wk 50</span></div>
+      <div class="tl-desc">
+        Runs <b style="color:#22C55E">Week <span id="p-tl-es"></span></b> → 
+        <b style="color:#F59E0B">Week <span id="p-tl-lf"></span></b> 
+        (<b><span id="p-tl-dur"></span> wks</b> duration).
+        <span id="p-tl-crit"></span>
+      </div>
+      <div id="p-float-banner"></div>
+    </div>
+
+    <div class="psec">
+      <div class="psl">SCHEDULE</div>
+      <div class="sgrid">
+        <div class="scell"><div class="sv" id="p-es" style="color:#22C55E"></div><div class="sk">Early Start</div></div>
+        <div class="scell"><div class="sv" id="p-dur" style="color:#F59E0B"></div><div class="sk">Duration (wks)</div></div>
+        <div class="scell"><div class="sv" id="p-ef" style="color:#22C55E"></div><div class="sk">Early Finish</div></div>
+      </div>
+      <div class="sgrid">
+        <div class="scell"><div class="sv" id="p-ls" style="color:#F59E0B"></div><div class="sk">Late Start</div></div>
+        <div class="scell"><div class="sv" id="p-tf" style="color:#EF4444"></div><div class="sk">Total Float</div></div>
+        <div class="scell"><div class="sv" id="p-lf" style="color:#F59E0B"></div><div class="sk">Late Finish</div></div>
+      </div>
+    </div>
+    <div class="psec">
+      <div class="psl">ACTIVITIES</div>
+      <div id="p-acts"></div>
+    </div>
+    <div class="psec">
+      <div class="psl">DELIVERABLE</div>
+      <div class="del-box"><div class="del-lbl">📦 OUTPUT</div><div class="del-val" id="p-del"></div></div>
+    </div>
+    <div class="psec">
+      <div class="psl">PERT ESTIMATE</div>
+      <div class="pert-g">
+        <div class="pert-cell"><div class="pert-v" id="p-o" style="color:#3B82F6"></div><div class="pert-l">Optimistic</div></div>
+        <div class="pert-cell"><div class="pert-v" id="p-m" style="color:#F59E0B"></div><div class="pert-l">Most Likely</div></div>
+        <div class="pert-cell"><div class="pert-v" id="p-p" style="color:#EF4444"></div><div class="pert-l">Pessimistic</div></div>
+        <div class="pert-cell"><div class="pert-v" id="p-te" style="color:#22C55E"></div><div class="pert-l">PERT Te</div></div>
+        <div class="pert-cell"><div class="pert-v" id="p-sd" style="color:#EF4444"></div><div class="pert-l">Std Dev σ</div></div>
+      </div>
+      <div style="margin-top:8px;padding:8px 10px;background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:6px;font-size:10px;color:#64748B;line-height:1.6">
+        Te = (O + 4M + P) ÷ 6 &nbsp;·&nbsp; σ = (P − O) ÷ 6<br>
+        <span style="color:#94A3B8">Normal distribution used to model delivery probability</span>
+      </div>
+    </div>
+    <div class="psec">
+      <div class="psl">LINKS</div>
+      <div style="color:#94A3B8;font-size:10px;font-weight:800;margin-bottom:6px">PREDECESSORS</div>
+      <div id="p-preds"></div>
+      <div style="color:#94A3B8;font-size:10px;font-weight:800;margin:10px 0 6px">SUCCESSORS</div>
+      <div id="p-succs"></div>
+    </div>
+  </div>
+</div>
+<div id="botbar">
+  <div class="bp"><span class="bpn" style="color:#EF4444">50</span><span class="bpl">weeks duration</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#F59E0B">12</span><span class="bpl">on critical path</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#3B82F6">3</span><span class="bpl">non-critical</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#22C55E">15</span><span class="bpl">total activities</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#F59E0B">1</span><span class="bpl">SS relationship</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#3B82F6">52.2 wks</span><span class="bpl">PERT expected duration (±3.0σ)</span></div>
+  <span style="margin-left:auto;color:#94A3B8;font-size:10px">Time-Priority (ES) · PDM · Forward & Backward Pass Complete · HQ Relocation · CS Company</span>
+</div>
+</div>
+
+<!-- DEFINITIONS MODAL -->
+<div id="def-overlay" onclick="closeDef(event)">
+<div id="def-box" onclick="event.stopPropagation()">
+  <div id="def-hdr">
+    <h2>📖 DEFINITIONS & ACRONYMS — STUDY REFERENCE</h2>
+    <button id="def-close" onclick="closeDef()">✕</button>
+  </div>
+  <div id="def-body">
+
+    <div class="def-sec">
+      <h3>PDM Node Fields</h3>
+      <div class="def-row"><span class="def-abbr">ES</span><span class="def-mean">Early Start — The earliest possible week the activity can begin based on predecessor constraints.</span></div>
+      <div class="def-row"><span class="def-abbr">EF</span><span class="def-mean">Early Finish — ES + Duration. The earliest possible week the activity can end.</span></div>
+      <div class="def-row"><span class="def-abbr">LS</span><span class="def-mean">Late Start — The latest week the activity can begin without delaying the project end date.</span></div>
+      <div class="def-row"><span class="def-abbr">LF</span><span class="def-mean">Late Finish — LS + Duration. The latest week the activity can end without delaying the project.</span></div>
+      <div class="def-row"><span class="def-abbr">Dur</span><span class="def-mean">Duration — The planned number of weeks to complete the activity.</span></div>
+      <div class="def-row"><span class="def-abbr">Float</span><span class="def-mean">Total Float (TF) — The amount of time an activity can be delayed without delaying the project. LF − EF or LS − ES.</span></div>
+    </div>
+
+    <div class="def-sec">
+      <h3>Dependency Types</h3>
+      <div class="def-row"><span class="def-abbr">FS</span><span class="def-mean">Finish-to-Start — The successor cannot start until the predecessor finishes. Most common relationship.</span></div>
+      <div class="def-row"><span class="def-abbr">SS</span><span class="def-mean">Start-to-Start — The successor can start after the predecessor has started (with optional lag). Allows parallel work.</span></div>
+      <div class="def-row"><span class="def-abbr">Lag</span><span class="def-mean">A mandatory waiting period between the predecessor and successor. Example: SS+2 means start 2 weeks after the predecessor starts.</span></div>
+    </div>
+
+    <div class="def-sec">
+      <h3>PERT Estimates</h3>
+      <div class="def-row"><span class="def-abbr">O</span><span class="def-mean">Optimistic — Best-case duration if everything goes perfectly.</span></div>
+      <div class="def-row"><span class="def-abbr">M</span><span class="def-mean">Most Likely — Realistic duration under normal conditions.</span></div>
+      <div class="def-row"><span class="def-abbr">P</span><span class="def-mean">Pessimistic — Worst-case duration if significant issues arise.</span></div>
+      <div class="def-row"><span class="def-abbr">Te</span><span class="def-mean">PERT Expected Time — Weighted average: (O + 4M + P) ÷ 6. Used for probabilistic planning.</span></div>
+      <div class="def-row"><span class="def-abbr">σ</span><span class="def-mean">Standard Deviation — Measure of uncertainty: (P − O) ÷ 6. Higher σ = more risk.</span></div>
+      <div class="def-row"><span class="def-abbr">Z</span><span class="def-mean">Z-Score — (Target − Te) ÷ σ. Used to calculate probability of hitting a deadline via normal distribution.</span></div>
+    </div>
+
+    <div class="def-sec">
+      <h3>Project Management Terms</h3>
+      <div class="def-row"><span class="def-abbr">PDM</span><span class="def-mean">Precedence Diagramming Method — The network logic technique used to sequence activities with nodes and arrows.</span></div>
+      <div class="def-row"><span class="def-abbr">WBS</span><span class="def-mean">Work Breakdown Structure — Hierarchical decomposition of project deliverables (e.g., 1.1.1, 2.1.2).</span></div>
+      <div class="def-row"><span class="def-abbr">CP</span><span class="def-mean">Critical Path — The longest path through the network with zero float. Any delay here delays the project.</span></div>
+      <div class="def-row"><span class="def-abbr">RAID</span><span class="def-mean">Risks, Assumptions, Issues, Dependencies — A project tracking log for governance and risk management.</span></div>
+      <div class="def-row"><span class="def-abbr">RACI</span><span class="def-mean">Responsible, Accountable, Consulted, Informed — A responsibility assignment matrix for roles.</span></div>
+      <div class="def-row"><span class="def-abbr">UAT</span><span class="def-mean">User Acceptance Testing — End-user validation of systems before go-live.</span></div>
+    </div>
+
+    <div class="def-sec">
+      <h3>Domain-Specific Terms</h3>
+      <div class="def-row"><span class="def-abbr">MEP</span><span class="def-mean">Mechanical, Electrical, Plumbing — Building infrastructure systems installed during fit-out.</span></div>
+      <div class="def-row"><span class="def-abbr">VoIP</span><span class="def-mean">Voice over Internet Protocol — Telephony system using internet data rather than traditional phone lines.</span></div>
+      <div class="def-row"><span class="def-abbr">RFQ</span><span class="def-mean">Request for Quotation — Procurement document sent to vendors to obtain pricing.</span></div>
+      <div class="def-row"><span class="def-abbr">Snag</span><span class="def-mean">Defects or unfinished items identified during final inspection before handover.</span></div>
+      <div class="def-row"><span class="def-abbr">Hypercare</span><span class="def-mean">Intensive on-site support period immediately after a major go-live or migration.</span></div>
+    </div>
+
+    <div class="def-sec">
+      <h3>Roles & Titles</h3>
+      <div class="def-row"><span class="def-abbr">PM</span><span class="def-mean">Project Manager — Leads planning, execution, and delivery of the project.</span></div>
+      <div class="def-row"><span class="def-abbr">CFO</span><span class="def-mean">Chief Financial Officer — Senior executive responsible for financial operations and lease approval.</span></div>
+      <div class="def-row"><span class="def-abbr">COO</span><span class="def-mean">Chief Operating Officer — Senior executive overseeing business operations and project closure.</span></div>
+      <div class="def-row"><span class="def-abbr">HR</span><span class="def-mean">Human Resources — Department managing staff engagement, change management, and relocation.</span></div>
+      <div class="def-row"><span class="def-abbr">IT</span><span class="def-mean">Information Technology — Department responsible for infrastructure, networks, and system migration.</span></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+const ACTS=[{"id": "A01", "wbs": "1.1.1", "name": "Charter & Team Setup", "dur": 2, "es": 0, "ef": 2, "ls": 0, "lf": 2, "tf": 0, "crit": true, "row": 1, "col": 0, "status": "Complete", "owner": "Project Manager", "o": 1, "m": 2, "p": 4, "activities": ["Sign & approve project charter", "Assign roles — build RACI matrix", "Host project kick-off meeting"], "deliverable": "Approved Charter + RACI Matrix"}, {"id": "A02", "wbs": "1.1.2", "name": "RAID Log & Reporting", "dur": 2, "es": 2, "ef": 4, "ls": 40, "lf": 42, "tf": 38, "crit": false, "row": 0, "col": 1, "status": "In Progress", "owner": "Asst PM", "o": 1, "m": 2, "p": 4, "activities": ["Create live RAID log template", "Build weekly status dashboard", "Establish reporting cadence"], "deliverable": "Live RAID Log + Weekly Reports"}, {"id": "A03", "wbs": "1.1.3", "name": "Stakeholder Engagement", "dur": 14, "es": 2, "ef": 16, "ls": 10, "lf": 24, "tf": 8, "crit": false, "row": 2, "col": 1, "status": "In Progress", "owner": "HR Director / PM", "o": 10, "m": 14, "p": 20, "activities": ["Execute stakeholder comms plan", "Host town halls & Q&A sessions", "Run monthly pulse surveys"], "deliverable": "Executed Comms Plan + Survey Results"}, {"id": "A04", "wbs": "2.1.1", "name": "Site Search & Shortlist", "dur": 8, "es": 2, "ef": 10, "ls": 2, "lf": 10, "tf": 0, "crit": true, "row": 1, "col": 1, "status": "In Progress", "owner": "Facilities Manager", "o": 6, "m": 8, "p": 14, "activities": ["Brief real estate agent on scope", "Conduct 5+ candidate site visits", "Score & rank sites vs brief"], "deliverable": "Scored Shortlist — Top 3 Sites"}, {"id": "A05", "wbs": "2.1.2", "name": "Lease Negotiation", "dur": 6, "es": 10, "ef": 16, "ls": 10, "lf": 16, "tf": 0, "crit": true, "row": 1, "col": 2, "status": "Not Started", "owner": "CFO / Legal Counsel", "o": 4, "m": 6, "p": 10, "activities": ["Submit heads of terms (top 2)", "Legal review & negotiate terms", "Execute lease agreement"], "deliverable": "Signed Lease Agreement"}, {"id": "A06", "wbs": "2.2.1", "name": "Space Design & Procurement", "dur": 3, "es": 16, "ef": 19, "ls": 16, "lf": 19, "tf": 0, "crit": true, "row": 1, "col": 3, "status": "Not Started", "owner": "Facilities / Procurement", "o": 2, "m": 3, "p": 6, "activities": ["Appoint designer — approve floor plan", "Issue RFQs to min. 3 contractors", "Award & sign vendor contracts"], "deliverable": "Approved Floor Plan + Vendor Contracts"}, {"id": "A07", "wbs": "4.1.1", "name": "Change Mgmt & Comms", "dur": 12, "es": 16, "ef": 28, "ls": 24, "lf": 36, "tf": 8, "crit": false, "row": 2, "col": 3, "status": "Not Started", "owner": "HR Director", "o": 8, "m": 12, "p": 18, "activities": ["Launch FAQ portal & info packs", "Run weekly change champion workshops", "Deliver relocation briefings to staff"], "deliverable": "Change-Ready Workforce"}, {"id": "A08", "wbs": "2.2.2", "name": "Construction, Snag & Handover", "dur": 11, "es": 19, "ef": 30, "ls": 19, "lf": 30, "tf": 0, "crit": true, "row": 1, "col": 4, "status": "Not Started", "owner": "Facilities Manager", "o": 8, "m": 11, "p": 16, "activities": ["Fit-out works (partitions, MEP, cabling)", "Weekly PM site inspections + snag log", "Snag closure & formal handover"], "deliverable": "Snagged & Handed-Over New HQ"}, {"id": "A09", "wbs": "3.1.1", "name": "IT & Telecom Installation", "dur": 8, "es": 21, "ef": 29, "ls": 21, "lf": 29, "tf": 0, "crit": true, "row": 1, "col": 5, "status": "Not Started", "owner": "IT Director / Telecom", "o": 5, "m": 8, "p": 13, "activities": ["Install server room & comms room", "Deploy network switches & cabling", "Activate fibre, VoIP & telephony"], "deliverable": "Live IT & Network Infrastructure"}, {"id": "A10", "wbs": "3.1.2", "name": "Network Testing & Sign-Off", "dur": 3, "es": 29, "ef": 32, "ls": 29, "lf": 32, "tf": 0, "crit": true, "row": 1, "col": 6, "status": "Not Started", "owner": "IT Director", "o": 2, "m": 3, "p": 5, "activities": ["End-to-end connectivity & VoIP tests", "UAT for all business applications", "Document & obtain formal sign-off"], "deliverable": "Tested Network + UAT Sign-Off"}, {"id": "A11", "wbs": "3.2.1", "name": "Migration Weekend Execution", "dur": 1, "es": 32, "ef": 33, "ls": 32, "lf": 33, "tf": 0, "crit": true, "row": 1, "col": 7, "status": "Not Started", "owner": "IT Director / Vendor", "o": 1, "m": 1, "p": 2, "activities": ["Final full backup of all systems", "Execute server & data migration", "Post-migration validation check"], "deliverable": "Fully Migrated Live Systems"}, {"id": "A12", "wbs": "3.2.2", "name": "IT Stabilisation & Decommission", "dur": 3, "es": 33, "ef": 36, "ls": 33, "lf": 36, "tf": 0, "crit": true, "row": 1, "col": 8, "status": "Not Started", "owner": "IT Director", "o": 2, "m": 3, "p": 5, "activities": ["3-day on-site hypercare support", "Resolve all post-migration issues", "Decommission & clear old site IT"], "deliverable": "Stable IT + Old Site Decommissioned"}, {"id": "A13", "wbs": "4.1.2", "name": "Physical Relocation", "dur": 2, "es": 36, "ef": 38, "ls": 36, "lf": 38, "tf": 0, "crit": true, "row": 1, "col": 9, "status": "Not Started", "owner": "Facilities / HR", "o": 1, "m": 2, "p": 4, "activities": ["Tag & inventory all physical assets", "Execute 3-phase departmental move", "Validate full HQ operational readiness"], "deliverable": "All Staff Operational at New HQ"}, {"id": "A14", "wbs": "4.2.1", "name": "Accounting Consolidation", "dur": 4, "es": 38, "ef": 42, "ls": 38, "lf": 42, "tf": 0, "crit": true, "row": 1, "col": 10, "status": "Not Started", "owner": "Finance Lead / CFO", "o": 3, "m": 4, "p": 7, "activities": ["Migrate satellite accounting data", "Train finance team on new system", "Go-live & first month-end close"], "deliverable": "Consolidated Accounting System Live"}, {"id": "A15", "wbs": "4.2.2", "name": "Benefits Report & Project Closure", "dur": 8, "es": 42, "ef": 50, "ls": 42, "lf": 50, "tf": 0, "crit": true, "row": 1, "col": 11, "status": "Not Started", "owner": "PM / COO", "o": 6, "m": 8, "p": 12, "activities": ["Compile cost savings vs. baseline", "Measure employee & client satisfaction", "Present final report to COO & close"], "deliverable": "Approved Benefits Realisation Report"}];
+const COL_MONTHS={"0": "May'26", "1": "May'26", "2": "Jul'26", "3": "Sep'26", "4": "Oct'26", "5": "Oct'26", "6": "Dec'26", "7": "Jan'27", "8": "Jan'27", "9": "Feb'27", "10": "Feb'27", "11": "Mar'27"};
+
+// PERT
+ACTS.forEach(a=>{
+  a.te=parseFloat(((a.o+4*a.m+a.p)/6).toFixed(1));
+  a.sd=parseFloat(((a.p-a.o)/6).toFixed(2));
+});
+
+// Lookup + successors
+const AM={};
+ACTS.forEach(a=>{AM[a.id]=a;a.succs=[];});
+const DEPS=[
+  {f:"A01",t:"A02",type:"FS",lag:0},
+  {f:"A01",t:"A03",type:"FS",lag:0},
+  {f:"A01",t:"A04",type:"FS",lag:0},
+  {f:"A02",t:"A15",type:"FS",lag:0},
+  {f:"A03",t:"A07",type:"FS",lag:0},
+  {f:"A04",t:"A05",type:"FS",lag:0},
+  {f:"A05",t:"A06",type:"FS",lag:0},
+  {f:"A06",t:"A08",type:"FS",lag:0},
+  {f:"A07",t:"A13",type:"FS",lag:0},
+  {f:"A08",t:"A09",type:"SS",lag:2},
+  {f:"A08",t:"A13",type:"FS",lag:0},
+  {f:"A09",t:"A10",type:"FS",lag:0},
+  {f:"A10",t:"A11",type:"FS",lag:0},
+  {f:"A11",t:"A12",type:"FS",lag:0},
+  {f:"A12",t:"A13",type:"FS",lag:0},
+  {f:"A13",t:"A14",type:"FS",lag:0},
+  {f:"A14",t:"A15",type:"FS",lag:0},
+];
+DEPS.forEach(d=>{
+  AM[d.f].succs.push({id:d.t,type:d.type,lag:d.lag});
+});
+
+// ── LAYOUT ──────────────────────────────────────────────────────
+const NW=178, NH=152;
+const COL_STEP=198, ROW_Y={0:100,1:318,2:536};
+const MX=70, MY=50;
+
+ACTS.forEach(a=>{
+  a.px = MX + a.col*COL_STEP + NW/2;
+  a.py = ROW_Y[a.row];
+});
+
+// ── COLOURS (LIGHT THEME) ──────────────────────────────────────
+const CC={
+  crit:{top:"#FCA5A5",mid:"#FEF2F2",bot:"#FECACA",bd:"#EF4444",hd:"#EF4444"},
+  nc:  {top:"#93C5FD",mid:"#EFF6FF",bot:"#BFDBFE",bd:"#3B82F6",hd:"#3B82F6"},
+};
+const SC={"Complete":"#22C55E","In Progress":"#F59E0B","Not Started":"#64748B"};
+
+// ── SVG ─────────────────────────────────────────────────────────
+const NS="http://www.w3.org/2000/svg";
+const sv=document.getElementById("cv");
+let pan={x:60,y:36},zoom=1,dragging=false,dragLast={x:0,y:0};
+let selId=null,hlSet=null,cpHL=false;
+
+function mk(tag,at,tx){
+  const e=document.createElementNS(NS,tag);
+  if(at)Object.entries(at).forEach(([k,v])=>e.setAttribute(k,v));
+  if(tx!==undefined)e.textContent=tx;
+  return e;
+}
+function t(x,y,s,fs,fw,fill,anc="middle"){
+  return mk("text",{x,y,"font-size":fs,"font-weight":fw,"font-family":"'Segoe UI',Arial,sans-serif",fill,"text-anchor":anc},s);
+}
+
+// ── DRAW NODE ───────────────────────────────────────────────────
+function drawNode(g,a){
+  const x=a.px-NW/2, y=a.py-NH/2;
+  const c=a.crit?CC.crit:CC.nc;
+  const dim=hlSet?(!hlSet.has(a.id)?0.2:1):1;
+  const isSel=selId===a.id;
+  const ng=mk("g",{opacity:dim,cursor:"pointer"});
+  ng.addEventListener("click",e=>{e.stopPropagation();selectA(a);});
+
+  // Drop shadow
+  ng.appendChild(mk("rect",{x:x+4,y:y+5,width:NW,height:NH,rx:8,fill:"rgba(0,0,0,0.08)"}));
+
+  // Selection glow
+  if(isSel) ng.appendChild(mk("rect",{x:x-6,y:y-6,width:NW+12,height:NH+12,rx:12,
+    fill:"none",stroke:"#F59E0B","stroke-width":"4",opacity:"0.9"}));
+
+  // Outer border
+  ng.appendChild(mk("rect",{x,y,width:NW,height:NH,rx:8,
+    fill:c.mid,stroke:isSel?"#F59E0B":c.bd,"stroke-width":isSel?"2.5":"1.8"}));
+
+  // ── TOP: ES | Dur | EF ──
+  ng.appendChild(mk("rect",{x,y,width:NW,height:28,rx:8,fill:c.top}));
+  ng.appendChild(mk("rect",{x,y:y+20,width:NW,height:8,fill:c.top}));
+  [NW/3,2*NW/3].forEach(dx=>{
+    ng.appendChild(mk("line",{x1:x+dx,y1:y,x2:x+dx,y2:y+28,stroke:"rgba(0,0,0,0.15)","stroke-width":"1"}));
+  });
+  [[NW/6,"ES"],[NW/2,"DUR"],[5*NW/6,"EF"]].forEach(([dx,lbl])=>{
+    ng.appendChild(t(x+dx,y+9,lbl,7,"400","rgba(0,0,0,0.5)"));
+  });
+  ng.appendChild(t(x+NW/6,y+22,a.es,13,"700","#1E293B"));
+  ng.appendChild(t(x+NW/2,y+22,a.dur,13,"700","#B45309"));
+  ng.appendChild(t(x+5*NW/6,y+22,a.ef,13,"700","#1E293B"));
+
+  // ── NAME SECTION (28→50) ──
+  ng.appendChild(mk("line",{x1:x,y1:y+28,x2:x+NW,y2:y+28,stroke:c.bd,"stroke-width":"0.8"}));
+  ng.appendChild(mk("rect",{x:x+5,y:y+30,width:32,height:12,rx:3,fill:"rgba(0,0,0,0.06)"}));
+  ng.appendChild(t(x+21,y+39,a.wbs,7.5,"600","rgba(0,0,0,0.6)"));
+  const words=a.name.split(" ");
+  let lines=[],cur="";
+  words.forEach(w=>{const test=cur?cur+" "+w:w;if(test.length>20&&cur){lines.push(cur);cur=w;}else cur=test;});
+  if(cur)lines.push(cur);lines=lines.slice(0,2);
+  const lh2=12, tH=lines.length*lh2;
+  const startY=y+40-tH/2+lh2*0.8;
+  lines.forEach((l,i)=>ng.appendChild(t(x+NW/2+4,startY+i*lh2,l,9.5,"700","#1E293B")));
+
+  // ── ACTIVITIES (50→108) ──
+  ng.appendChild(mk("line",{x1:x,y1:y+50,x2:x+NW,y2:y+50,stroke:c.bd,"stroke-width":"0.8"}));
+  ng.appendChild(t(x+6,y+60,"ACTIVITIES",7,"700","rgba(0,0,0,0.4)","start"));
+  a.activities.forEach((act,i)=>{
+    const ay=y+68+i*18;
+    ng.appendChild(mk("circle",{cx:x+9,cy:ay-3,r:2,fill:c.bd,opacity:"0.7"}));
+    const s=act.length>24?act.slice(0,23)+"…":act;
+    ng.appendChild(t(x+14,ay,s,8,"400","rgba(0,0,0,0.75)","start"));
+  });
+
+  // ── DELIVERABLE (108→128) ──
+  ng.appendChild(mk("line",{x1:x,y1:y+108,x2:x+NW,y2:y+108,stroke:c.bd,"stroke-width":"0.8"}));
+  ng.appendChild(mk("rect",{x,y:y+108,width:NW,height:20,fill:"rgba(34,197,94,0.08)"}));
+  ng.appendChild(t(x+6,y+117,"??",8,"400","#15803D","start"));
+  const ds=a.deliverable.length>22?a.deliverable.slice(0,21)+"…":a.deliverable;
+  ng.appendChild(t(x+18,y+121,ds,8,"600","#15803D","start"));
+
+  // ── BOTTOM: LS | Float | LF (128→152) ──
+  ng.appendChild(mk("line",{x1:x,y1:y+128,x2:x+NW,y2:y+128,stroke:c.bd,"stroke-width":"0.8"}));
+  ng.appendChild(mk("rect",{x,y:y+128,width:NW,height:NH-128,rx:5,fill:c.bot}));
+  ng.appendChild(mk("rect",{x,y:y+128,width:NW,height:5,fill:c.bot}));
+  [NW/3,2*NW/3].forEach(dx=>{
+    ng.appendChild(mk("line",{x1:x+dx,y1:y+128,x2:x+dx,y2:y+NH,stroke:"rgba(0,0,0,0.15)","stroke-width":"1"}));
+  });
+  [[NW/6,"LS"],[NW/2,"FLOAT"],[5*NW/6,"LF"]].forEach(([dx,lbl])=>{
+    ng.appendChild(t(x+dx,y+136,lbl,7,"400","rgba(0,0,0,0.5)"));
+  });
+  const fc=a.tf===0?"#EF4444":a.tf<=8?"#F59E0B":"#22C55E";
+  ng.appendChild(t(x+NW/6,y+149,a.ls,13,"700","#1E293B"));
+  ng.appendChild(t(x+NW/2,y+149,a.tf,14,"700",fc));
+  ng.appendChild(t(x+5*NW/6,y+149,a.lf,13,"700","#1E293B"));
+
+  if(a.crit) ng.appendChild(t(x+NW-9,y+10,"★",9,"700","rgba(239,68,68,0.7)"));
+
+  g.appendChild(ng);
+}
+
+// ── DRAW ARROWS ─────────────────────────────────────────────────
+function mkDefs(){
+  const d=mk("defs");
+  [["ahc","#EF4444"],["ahn","#94A3B8"],["aho","#F59E0B"],["ahy","#F59E0B"]].forEach(([id,col])=>{
+    const m=mk("marker",{id,markerWidth:"8",markerHeight:"6",refX:"7",refY:"3",orient:"auto"});
+    m.appendChild(mk("polygon",{points:"0 0,8 3,0 6",fill:col}));
+    d.appendChild(m);
+  });
+  const pat=mk("pattern",{id:"grd",width:"44",height:"44",patternUnits:"userSpaceOnUse"});
+  pat.appendChild(mk("path",{d:"M44 0L0 0 0 44",fill:"none",stroke:"#E2E8F0","stroke-width":"0.6"}));
+  d.appendChild(pat);
+  return d;
+}
+
+function drawArrows(g){
+  DEPS.forEach(d=>{
+    const src=AM[d.f],tgt=AM[d.t];
+    const isCritFS=src.crit&&tgt.crit&&d.type==="FS";
+    const op=hlSet?(hlSet.has(src.id)&&hlSet.has(tgt.id)?1:0.1):1;
+    let path,col,sw,dash="none",me;
+
+    if(d.type==="SS"){
+      const x1=src.px-NW/2,y1=src.py-NH/2-5;
+      const x2=tgt.px-NW/2,y2=tgt.py-NH/2-5;
+      const cy=Math.min(y1,y2)-50;
+      path=`M${x1},${y1} C${x1},${cy} ${x2},${cy} ${x2},${y2}`;
+      col="#F59E0B";sw="2.2";dash="5,4";me="url(#aho)";
+    } else if(d.f==="A02"&&d.t==="A15"){
+      const x1=src.px+NW/2,y1=src.py-NH/2;
+      const x2=tgt.px-NW/2,y2=tgt.py-NH/2+22;
+      path=`M${x1},${y1} V28 H${x2} V${y2}`;
+      col="#94A3B8";sw="1.6";me="url(#ahn)";
+    } else if(d.f==="A07"&&d.t==="A13"){
+      const x1=src.px+NW/2,y1=src.py;
+      const x2=tgt.px,y2=tgt.py+NH/2;
+      const byY=ROW_Y[2]+NH/2+32;
+      path=`M${x1},${y1} H${x1+12} V${byY} H${x2} V${y2}`;
+      col="#94A3B8";sw="1.6";me="url(#ahn)";
+    } else if(d.f==="A08"&&d.t==="A13"){
+      const x1=src.px+NW/2-22,y1=src.py+NH/2;
+      const x2=tgt.px,y2=tgt.py+NH/2;
+      const byY=ROW_Y[1]+NH/2+36;
+      path=`M${x1},${y1} V${byY} H${x2} V${y2}`;
+      col="#94A3B8";sw="1.4";dash="4,3";me="url(#ahn)";
+    } else {
+      const x1=src.px+NW/2,y1=src.py;
+      const x2=tgt.px-NW/2,y2=tgt.py;
+      if(Math.abs(y1-y2)<5){
+        path=`M${x1},${y1} L${x2},${y2}`;
+      } else {
+        const mx=(x1+x2)/2;
+        path=`M${x1},${y1} H${mx} V${y2} H${x2}`;
+      }
+      col=isCritFS?"#EF4444":"#94A3B8";
+      sw=isCritFS?"3":"1.8";
+      me=isCritFS?"url(#ahc)":"url(#ahn)";
+    }
+
+    const e=mk("path",{d:path,fill:"none",stroke:col,"stroke-width":sw,
+      "stroke-dasharray":dash,"marker-end":me,opacity:op,
+      "stroke-linecap":"round","stroke-linejoin":"round"});
+    g.appendChild(e);
+
+    if(d.type==="SS"){
+      const mx=(src.px+tgt.px)/2;
+      const ty=Math.min(src.py,tgt.py)-NH/2-52;
+      g.appendChild(mk("rect",{x:mx-20,y:ty-10,width:40,height:15,rx:4,
+        fill:"#FFFBEB",stroke:"#F59E0B","stroke-width":"1",opacity:op}));
+      const lb=t(mx,ty,"SS+2",9,"700","#F59E0B");
+      lb.setAttribute("opacity",op);
+      g.appendChild(lb);
+    }
+  });
+}
+
+// ── ROW LANE LABELS ─────────────────────────────────────────────
+function drawLanes(g){
+  const lanes=[
+    {row:0,lbl:"NON-CRITICAL  (Float = 38 wks)",col:"#3B82F6"},
+    {row:1,lbl:"⬛  CRITICAL PATH  ★  Float = 0  ⬛",col:"#EF4444"},
+    {row:2,lbl:"PARALLEL SUPPORT  (Float = 8 wks)",col:"#3B82F6"},
+  ];
+  lanes.forEach(l=>{
+    const cy=ROW_Y[l.row];
+    const laneH=NH+28;
+    g.appendChild(mk("rect",{
+      x:MX-30,y:cy-NH/2-14,
+      width:12*COL_STEP+NW+60,height:laneH,
+      rx:6,fill:l.row===1?"rgba(239,68,68,0.06)":"rgba(59,130,246,0.06)",
+      stroke:l.row===1?"rgba(239,68,68,0.15)":"rgba(59,130,246,0.12)",
+      "stroke-width":"1","stroke-dasharray":"6,5"
+    }));
+    const lbl=t(30,cy,l.lbl,9,"700",l.col);
+    lbl.setAttribute("text-anchor","middle");
+    lbl.setAttribute("transform",`rotate(-90,30,${cy})`);
+    g.appendChild(lbl);
+  });
+
+  const usedCols=new Set();
+  ACTS.forEach(a=>{
+    if(!usedCols.has(a.col)){
+      usedCols.add(a.col);
+      const cx=MX+a.col*COL_STEP+NW/2;
+      const mon=COL_MONTHS[a.col]||"";
+      g.appendChild(mk("line",{x1:cx,y1:MY+10,x2:cx,y2:ROW_Y[2]+NH/2+14,
+        stroke:"#E2E8F0","stroke-width":"1","stroke-dasharray":"3,6"}));
+      g.appendChild(t(cx,MY+10,`Wk ${ACTS.find(aa=>aa.col===a.col).es}`,8,"400","#94A3B8"));
+      g.appendChild(t(cx,MY+20,mon,8,"600","#3B82F6"));
+    }
+  });
+  g.appendChild(t(MX+NW/2,MY-5,"← TIME PRIORITY (Early Start Order) →",9,"700","#94A3B8","start"));
+}
+
+// ── RENDER ──────────────────────────────────────────────────────
+function render(){
+  while(sv.firstChild)sv.removeChild(sv.firstChild);
+  sv.appendChild(mkDefs());
+  sv.appendChild(mk("rect",{width:"100%",height:"100%",fill:"url(#grd)"}));
+  const g=mk("g",{transform:`translate(${pan.x},${pan.y}) scale(${zoom})`});
+  drawLanes(g);
+  drawArrows(g);
+  ACTS.forEach(a=>drawNode(g,a));
+  sv.appendChild(g);
+  document.getElementById("zbadge").textContent=Math.round(zoom*100)+"%";
+}
+
+// ── FIT VIEW ────────────────────────────────────────────────────
+function fitView(){
+  const wrap=document.getElementById("cwrap");
+  const vw=wrap.clientWidth,vh=wrap.clientHeight;
+  const tw=MX*2+12*COL_STEP+NW+40;
+  const th=MY+ROW_Y[2]+NH/2+60;
+  zoom=Math.min(vw/tw,vh/th,1);
+  zoom=Math.max(zoom,0.15);
+  pan.x=(vw-tw*zoom)/2+20;
+  pan.y=(vh-th*zoom)/2+10;
+  render();
+}
+
+// ── CRITICAL PATH TOGGLE ────────────────────────────────────────
+function toggleCP(){
+  cpHL=!cpHL;
+  document.getElementById("cpBtn").classList.toggle("active",cpHL);
+  hlSet=cpHL?new Set(ACTS.filter(a=>a.crit).map(a=>a.id)):null;
+  render();
+}
+function clearHL(){
+  cpHL=false;
+  document.getElementById("cpBtn").classList.remove("active");
+  hlSet=null;selId=null;
+  document.getElementById("panel").classList.remove("open");
+  render();
+}
+
+// ── SELECT / PANEL ──────────────────────────────────────────────
+function selectA(a){
+  selId=(selId===a.id)?null:a.id;
+  if(selId){
+    hlSet=new Set([a.id,...a.succs.map(s=>s.id)]);
+    DEPS.filter(d=>d.t===a.id).forEach(d=>hlSet.add(d.f));
+    updatePanel(a);
+  } else {
+    hlSet=cpHL?new Set(ACTS.filter(x=>x.crit).map(x=>x.id)):null;
+    closeP();
+  }
+  render();
+}
+function closeP(){
+  selId=null;
+  if(!cpHL)hlSet=null;
+  document.getElementById("panel").classList.remove("open");
+  render();
+}
+function updatePanel(a){
+  document.getElementById("panel").classList.add("open");
+  const col=a.crit?"#EF4444":"#3B82F6";
+  document.getElementById("pid").textContent=(a.crit?"★ CRITICAL — ":"◆ NON-CRITICAL — ")+a.id;
+  document.getElementById("pid").style.color=col;
+  document.getElementById("ptitle").textContent=a.name;
+  document.getElementById("pwbs").textContent="WBS: "+a.wbs+" · "+a.activities.length+" activities · "+(a.crit?"Zero Float":"Float = "+a.tf+" wks");
+
+  const sb=document.getElementById("p-status-badge");
+  sb.textContent=a.status;
+  sb.className="status-badge status-"+a.status;
+  document.getElementById("p-owner").textContent=a.owner;
+  const pct=a.status==="Complete"?100:a.status==="In Progress"?50:0;
+  document.getElementById("p-pct").textContent=pct+"%";
+  const bar=document.getElementById("p-bar");
+  bar.style.width=pct+"%";
+  bar.style.background=a.status==="Complete"?"#22C55E":a.status==="In Progress"?"#F59E0B":"#64748B";
+
+  const tlFill=document.getElementById("p-tl-fill");
+  const totalW=50;
+  const leftPct=(a.es/totalW)*100;
+  const widthPct=(a.dur/totalW)*100;
+  tlFill.style.left="calc("+leftPct+"% + 4px)";
+  tlFill.style.width="calc("+widthPct+"% - 0px)";
+  tlFill.style.background=a.crit?"#EF4444":"#3B82F6";
+  document.getElementById("p-tl-now").style.left="calc("+leftPct+"% + 4px)";
+  document.getElementById("p-tl-es").textContent=a.es;
+  document.getElementById("p-tl-lf").textContent=a.lf;
+  document.getElementById("p-tl-dur").textContent=a.dur;
+  document.getElementById("p-tl-mid").textContent="Wk "+Math.round(totalW/2);
+  const fb=document.getElementById("p-float-banner");
+  if(a.crit){
+    fb.innerHTML='<div class="crit-banner">⚠ ZERO FLOAT — Any delay will push the project end date.</div>';
+  }else if(a.tf<=8){
+    fb.innerHTML='<div class="warn-banner">⚡ LOW FLOAT ('+a.tf+' wks) — Monitor closely; risk of becoming critical.</div>';
+  }else{
+    fb.innerHTML='<div class="safe-banner">✓ HEALTHY FLOAT ('+a.tf+' wks) — Comfortable scheduling buffer available.</div>';
+  }
+
+  document.getElementById("p-es").textContent=a.es;
+  document.getElementById("p-dur").textContent=a.dur;
+  document.getElementById("p-ef").textContent=a.ef;
+  document.getElementById("p-ls").textContent=a.ls;
+  const fc=a.tf===0?"#EF4444":a.tf<=8?"#F59E0B":"#22C55E";
+  document.getElementById("p-tf").textContent=a.tf; document.getElementById("p-tf").style.color=fc;
+  document.getElementById("p-lf").textContent=a.lf;
+  document.getElementById("p-o").textContent=a.o;
+  document.getElementById("p-m").textContent=a.m;
+  document.getElementById("p-p").textContent=a.p;
+  document.getElementById("p-te").textContent=a.te;
+  document.getElementById("p-sd").textContent=a.sd;
+  document.getElementById("p-del").textContent=a.deliverable;
+
+  const pa=document.getElementById("p-acts");
+  pa.innerHTML="";
+  a.activities.forEach((act,i)=>{
+    pa.innerHTML+=`<div class="act-row"><span class="act-num">${i+1}.</span><span>${act}</span></div>`;
+  });
+
+  const pp=document.getElementById("p-preds");
+  pp.innerHTML="";
+  const preds=DEPS.filter(d=>d.t===a.id);
+  if(!preds.length)pp.innerHTML=`<div style="color:#94A3B8;font-size:10px">None — Project Start</div>`;
+  preds.forEach(d=>{
+    const src=AM[d.f];
+    pp.innerHTML+=`<div class="dep-row">
+      <span class="dep-id" style="color:${src.crit?"#EF4444":"#3B82F6"}">${d.f}</span>
+      <span class="dep-type" style="color:${d.type==="SS"?"#F59E0B":"#22C55E"}">${d.type}${d.lag>0?"+"+d.lag:""}</span>
+      ${src.name}</div>`;
+  });
+
+  const ps=document.getElementById("p-succs");
+  ps.innerHTML="";
+  const succs=DEPS.filter(d=>d.f===a.id);
+  if(!succs.length)ps.innerHTML=`<div style="color:#94A3B8;font-size:10px">None — Project End</div>`;
+  succs.forEach(d=>{
+    const tgt=AM[d.t];
+    ps.innerHTML+=`<div class="dep-row">
+      <span class="dep-id" style="color:${tgt.crit?"#EF4444":"#3B82F6"}">${d.t}</span>
+      <span class="dep-type" style="color:${d.type==="SS"?"#F59E0B":"#22C55E"}">${d.type}${d.lag>0?"+"+d.lag:""}</span>
+      ${tgt.name}</div>`;
+  });
+}
+
+// ── DEFINITIONS MODAL ───────────────────────────────────────────
+function toggleDef(){
+  document.getElementById("def-overlay").classList.toggle("open");
+}
+function closeDef(e){
+  if(!e || e.target.id==="def-overlay") document.getElementById("def-overlay").classList.remove("open");
+}
+
+// ── PAN & ZOOM ──────────────────────────────────────────────────
+const wrap=document.getElementById("cwrap");
+wrap.addEventListener("mousedown",e=>{
+  if(["rect","text","circle","path","line","polygon"].includes(e.target.tagName.toLowerCase()))return;
+  dragging=true;dragLast={x:e.clientX,y:e.clientY};wrap.classList.add("drag");
+});
+window.addEventListener("mousemove",e=>{
+  if(!dragging)return;
+  pan.x+=e.clientX-dragLast.x;pan.y+=e.clientY-dragLast.y;
+  dragLast={x:e.clientX,y:e.clientY};render();
+});
+window.addEventListener("mouseup",()=>{dragging=false;wrap.classList.remove("drag");});
+wrap.addEventListener("wheel",e=>{
+  e.preventDefault();
+  const r=wrap.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const f=e.deltaY<0?1.1:0.91;
+  const nz=Math.max(0.15,Math.min(3,zoom*f));
+  pan.x=mx-(mx-pan.x)*(nz/zoom);pan.y=my-(my-pan.y)*(nz/zoom);
+  zoom=nz;render();
+},{passive:false});
+window.addEventListener("load",()=>setTimeout(fitView,80));
+</script>
+</body>
+</html>

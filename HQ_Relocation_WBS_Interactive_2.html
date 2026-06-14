@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WBS — HQ Relocation Project</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0D1B2A;font-family:Arial,sans-serif}
+  #app{display:flex;flex-direction:column;height:100vh}
+  #topbar{background:#0D1B2A;border-bottom:1px solid #1E3A5A;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+  #topbar h1{color:#E8ECF0;font-size:13px;font-weight:700;letter-spacing:.4px}
+  #topbar .sub{color:#5D8AA8;font-size:10px;margin-top:1px}
+  #topbar button{background:#1A3A5C;border:1px solid #2E5F8A;border-radius:7px;padding:5px 12px;color:#85C1E9;font-size:11px;font-weight:700;cursor:pointer}
+  #topbar button:hover{background:#2E5F8A}
+  #searchbox{background:#1A3A5C;border:1px solid #2E5F8A;border-radius:7px;padding:5px 10px;color:#E8ECF0;font-size:11px;width:150px;outline:none}
+  #searchbox::placeholder{color:#3D6A8A}
+  #hint{color:#3D6A8A;font-size:10px;margin-left:4px}
+  #main{flex:1;display:flex;overflow:hidden;position:relative}
+  #canvas-wrap{flex:1;overflow:hidden;cursor:grab;position:relative}
+  #canvas-wrap.dragging{cursor:grabbing}
+  svg#canvas{display:block;width:100%;height:100%}
+  #panel{width:290px;background:#0F2030;border-left:1px solid #1E3A5A;display:none;flex-direction:column;overflow-y:auto;flex-shrink:0}
+  #panel.open{display:flex}
+  #panel-hdr{padding:12px 14px 10px;border-bottom:1px solid #1E3A5A;position:relative}
+  #panel-level{font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:3px}
+  #panel-title{color:#E8ECF0;font-size:13px;font-weight:700;line-height:1.3}
+  #panel-close{background:none;border:none;color:#5D8AA8;font-size:17px;cursor:pointer;position:absolute;right:12px;top:12px;line-height:1}
+  #panel-status{padding:8px 14px;border-bottom:1px solid #1E3A5A}
+  .status-badge{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#E8ECF0}
+  #panel-body{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+  .detail-lbl{color:#5D8AA8;font-size:9px;font-weight:700;letter-spacing:.8px;margin-bottom:3px}
+  .detail-val{color:#C8D8E8;font-size:11px;line-height:1.5}
+  #panel-children{padding:0 14px 12px}
+  .child-row{background:#1A3A5C22;border:1px solid #1E3A5A;border-radius:6px;padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-bottom:4px}
+  .child-row:hover{background:#1E3A5A55}
+  .child-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+  .child-id{color:#85C1E9;font-size:10px;font-weight:700;white-space:nowrap}
+  .child-lbl{color:#B0C4D8;font-size:10px}
+  #panel-stats{margin:0 14px 14px;background:#1A3A5C22;border:1px solid #1E3A5A;border-radius:8px;padding:10px;display:flex;justify-content:space-around}
+  .stat-num{font-size:20px;font-weight:700;text-align:center}
+  .stat-lbl{color:#5D8AA8;font-size:9px;text-align:center}
+  #zoom-badge{position:absolute;bottom:10px;left:10px;background:rgba(13,27,42,.9);border:1px solid #1E3A5A;border-radius:7px;padding:3px 11px;color:#5D8AA8;font-size:11px;pointer-events:none;z-index:10}
+  #legend-box{position:absolute;bottom:10px;right:10px;background:rgba(13,27,42,.95);border:1px solid #1E3A5A;border-radius:9px;padding:9px 13px;z-index:10}
+  .leg-row{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+  .leg-row:last-child{margin-bottom:0}
+  .leg-sq{width:13px;height:13px;border-radius:3px;flex-shrink:0}
+  .leg-lbl{color:#B0C4D8;font-size:10px;font-weight:600}
+  .leg-cnt{color:#5D8AA8;font-size:10px;margin-left:auto;padding-left:12px}
+  #botbar{background:#080F18;border-top:1px solid #1E3A5A;padding:5px 16px;display:flex;gap:18px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+  .stat-pill{display:flex;align-items:center;gap:5px}
+  .stat-pill .n{font-size:14px;font-weight:700}
+  .stat-pill .l{color:#3D6A8A;font-size:10px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div>
+      <h1>WORK BREAKDOWN STRUCTURE</h1>
+      <div class="sub">HQ Relocation Project &nbsp;·&nbsp; CS Company &nbsp;·&nbsp; May 2026 – Jul 2027</div>
+    </div>
+    <input id="searchbox" type="text" placeholder="Search nodes…" oninput="doSearch(this.value)">
+    <button onclick="expandAll()">Expand All</button>
+    <button onclick="collapseAll()">Collapse All</button>
+    <button onclick="fitView()">Fit View</button>
+    <span id="hint">Scroll = zoom &nbsp;·&nbsp; Drag = pan &nbsp;·&nbsp; Click node for details</span>
+  </div>
+  <div id="main">
+    <div id="canvas-wrap">
+      <svg id="canvas"></svg>
+      <div id="zoom-badge">100%</div>
+      <div id="legend-box">
+        <div class="leg-row"><div class="leg-sq" style="background:#B03A2E"></div><span class="leg-lbl">Root</span><span class="leg-cnt">1</span></div>
+        <div class="leg-row"><div class="leg-sq" style="background:#C87F0A"></div><span class="leg-lbl">Control Account</span><span class="leg-cnt">4</span></div>
+        <div class="leg-row"><div class="leg-sq" style="background:#1B4F72"></div><span class="leg-lbl">Planning Package</span><span class="leg-cnt">7</span></div>
+        <div class="leg-row"><div class="leg-sq" style="background:#1565A8"></div><span class="leg-lbl">Work Package</span><span class="leg-cnt">15</span></div>
+      </div>
+    </div>
+    <div id="panel">
+      <div id="panel-hdr">
+        <button id="panel-close" onclick="closePanel()">✕</button>
+        <div id="panel-level"></div>
+        <div id="panel-title"></div>
+      </div>
+      <div id="panel-status"><span class="status-badge" id="panel-badge"></span></div>
+      <div id="panel-body"></div>
+      <div id="panel-children"></div>
+      <div id="panel-stats"></div>
+    </div>
+  </div>
+  <div id="botbar">
+    <div class="stat-pill"><span class="n" style="color:#C87F0A">4</span><span class="l">Control Accounts</span></div>
+    <div class="stat-pill"><span class="n" style="color:#1B4F72">7</span><span class="l">Planning Packages</span></div>
+    <div class="stat-pill"><span class="n" style="color:#1565A8">15</span><span class="l">Work Packages</span></div>
+    <div class="stat-pill"><span class="n" style="color:#1E8449">1</span><span class="l">Complete</span></div>
+    <div class="stat-pill"><span class="n" style="color:#B7770D">4</span><span class="l">In Progress</span></div>
+    <div class="stat-pill"><span class="n" style="color:#555">10</span><span class="l">Not Started</span></div>
+    <span style="margin-left:auto;color:#2E5F8A;font-size:10px">CS Company · EGP 2,000,000</span>
+  </div>
+</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────
+const TREE = {
+  id:"0",label:["HQ Relocation Project"],sub:"CS Company · May 2026–Jul 2027 · EGP 2M",level:0,
+  meta:{deliverable:"Relocated HQ fully operational",owner:"Project Manager",timeframe:"May 2026 – Jul 2027",status:"In Progress",notes:"Budget: EGP 2,000,000 · 4 CAs · 7 PPs · 15 WPs"},
+  children:[
+    {id:"1",label:["1. Project Management","& Governance"],level:1,
+     meta:{deliverable:"Governed project lifecycle",owner:"Project Manager",timeframe:"May 2026 – Jul 2027",status:"In Progress",notes:"Runs entire project duration"},
+     children:[
+       {id:"1.1",label:["1.1 Governance,","Setup & Control"],level:2,
+        meta:{deliverable:"Active project framework",owner:"PM / Asst PM",timeframe:"May 2026 – Ongoing",status:"In Progress",notes:"RAID, reporting, steering committee"},
+        children:[
+          {id:"1.1.1",label:["1.1.1","Charter &","Team Setup"],level:3,meta:{deliverable:"Signed charter + RACI matrix",owner:"Project Manager",timeframe:"May 2026",status:"Complete",notes:"Milestone M1: Charter signed 15 May 2026"}},
+          {id:"1.1.2",label:["1.1.2","RAID Log &","Reporting"],level:3,meta:{deliverable:"Live RAID + weekly reports",owner:"Asst PM",timeframe:"Ongoing",status:"In Progress",notes:"Owner of all status reporting"}},
+          {id:"1.1.3",label:["1.1.3","Stakeholder","Engagement"],level:3,meta:{deliverable:"Executed comms plan",owner:"HR Director / PM",timeframe:"Ongoing",status:"In Progress",notes:"Linked to full stakeholder register"}},
+        ]}
+    ]},
+    {id:"2",label:["2. Site Acquisition","& Fit-Out"],level:1,
+     meta:{deliverable:"New HQ ready for occupation",owner:"CFO / Facilities Manager",timeframe:"May – Dec 2026",status:"In Progress",notes:"Critical path phase"},
+     children:[
+       {id:"2.1",label:["2.1 Site Selection","& Lease"],level:2,
+        meta:{deliverable:"Executed lease agreement",owner:"CFO",timeframe:"May – Sep 2026",status:"In Progress",notes:"M3: Shortlist 15 Jul · M4: Lease signed 01 Sep"},
+        children:[
+          {id:"2.1.1",label:["2.1.1","Site Search","& Shortlist"],level:3,meta:{deliverable:"Scored shortlist — top 3 sites",owner:"Facilities Manager",timeframe:"May – Jul 2026",status:"In Progress",notes:"Minimum 5 sites to be visited"}},
+          {id:"2.1.2",label:["2.1.2","Lease","Negotiation"],level:3,meta:{deliverable:"Signed lease agreement",owner:"CFO / Legal Counsel",timeframe:"Jul – Sep 2026",status:"Not Started",notes:"Parallel offers on top 2 sites"}},
+        ]},
+       {id:"2.2",label:["2.2 Design, Fit-Out","& Handover"],level:2,
+        meta:{deliverable:"Snagged & handed-over new HQ",owner:"Facilities Manager",timeframe:"Sep – Dec 2026",status:"Not Started",notes:"M6: Start 01 Oct · M8: Complete 15 Dec 2026"},
+        children:[
+          {id:"2.2.1",label:["2.2.1","Space Design","& Procurement"],level:3,meta:{deliverable:"Approved floor plan + contracts",owner:"Facilities / Procurement",timeframe:"Sep – Oct 2026",status:"Not Started",notes:"Milestone M5: All contracts 01 Oct 2026"}},
+          {id:"2.2.2",label:["2.2.2","Construction,","Snag & Handover"],level:3,meta:{deliverable:"Handover certificate",owner:"Facilities Manager",timeframe:"Oct – Dec 2026",status:"Not Started",notes:"Weekly PM site visits mandatory"}},
+        ]}
+    ]},
+    {id:"3",label:["3. Technology","Migration"],level:1,
+     meta:{deliverable:"Fully migrated IT environment",owner:"IT Director",timeframe:"Nov 2026 – Jan 2027",status:"Not Started",notes:"Zero critical downtime target"},
+     children:[
+       {id:"3.1",label:["3.1 IT & Telecom","Infrastructure"],level:2,
+        meta:{deliverable:"New IT infrastructure live",owner:"IT Director",timeframe:"Nov 2026 – Jan 2027",status:"Not Started",notes:"Milestone M7: Infrastructure live 01 Jan 2027"},
+        children:[
+          {id:"3.1.1",label:["3.1.1","IT & Telecom","Installation"],level:3,meta:{deliverable:"Servers, network & fibre live",owner:"IT Director / Telecom",timeframe:"Nov – Dec 2026",status:"Not Started",notes:"Fibre order placed in procurement phase"}},
+          {id:"3.1.2",label:["3.1.2","Network Testing","& Sign-Off"],level:3,meta:{deliverable:"Tested network + UAT sign-off",owner:"IT Director",timeframe:"Dec 2026 – Jan 2027",status:"Not Started",notes:"4-week parallel test period required"}},
+        ]},
+       {id:"3.2",label:["3.2 Systems","Cutover"],level:2,
+        meta:{deliverable:"Live migrated systems",owner:"IT Director",timeframe:"Jan 2027",status:"Not Started",notes:"Milestone M9: Migration weekend 15-16 Jan 2027"},
+        children:[
+          {id:"3.2.1",label:["3.2.1","Migration Weekend","Execution"],level:3,meta:{deliverable:"Migrated systems — all live",owner:"IT Director / Vendor",timeframe:"15–16 Jan 2027",status:"Not Started",notes:"Rollback plan mandatory before cutover"}},
+          {id:"3.2.2",label:["3.2.2","IT Stabilisation","& Decommission"],level:3,meta:{deliverable:"Stable IT + old site closed",owner:"IT Director",timeframe:"Jan – Feb 2027",status:"Not Started",notes:"3-day hypercare on-site after cutover"}},
+        ]}
+    ]},
+    {id:"4",label:["4. People, Finance","& Benefits"],level:1,
+     meta:{deliverable:"Benefits realisation report approved",owner:"HR Director / CFO",timeframe:"Jan – Jul 2027",status:"Not Started",notes:"Proves all project objectives were met"},
+     children:[
+       {id:"4.1",label:["4.1 Change Mgmt","& Physical Move"],level:2,
+        meta:{deliverable:"All staff operational at new HQ",owner:"HR Director",timeframe:"Sep 2026 – Jan 2027",status:"Not Started",notes:"Milestone M10: Move complete 31 Jan 2027"},
+        children:[
+          {id:"4.1.1",label:["4.1.1","Change Mgmt","& Comms"],level:3,meta:{deliverable:"Executed comms + satisfied staff",owner:"HR Director",timeframe:"Sep 2026 – Jan 2027",status:"Not Started",notes:"Town halls, FAQ portal, pulse surveys"}},
+          {id:"4.1.2",label:["4.1.2","Physical","Relocation"],level:3,meta:{deliverable:"3-phase move complete",owner:"Facilities / HR",timeframe:"Jan 2027",status:"Not Started",notes:"Phased by dept — IT/Finance first, CS last"}},
+        ]},
+       {id:"4.2",label:["4.2 Finance &","Benefits Realisation"],level:2,
+        meta:{deliverable:"Consolidated finance + final report",owner:"Finance Lead / CFO",timeframe:"Feb – Jul 2027",status:"Not Started",notes:"M11: Accounting 28 Feb · M13: Closure 31 Jul 2027"},
+        children:[
+          {id:"4.2.1",label:["4.2.1","Accounting","Consolidation"],level:3,meta:{deliverable:"Consolidated go-live",owner:"Finance Lead",timeframe:"Feb 2027",status:"Not Started",notes:"First month-end close by 10 Mar 2027"}},
+          {id:"4.2.2",label:["4.2.2","Benefits Report","& Project Closure"],level:3,meta:{deliverable:"Approved benefits report",owner:"PM / COO",timeframe:"Jul 2027",status:"Not Started",notes:"Target: >=10% cost saving + 15% capacity growth"}},
+        ]}
+    ]}
+  ]
+};
+
+// ─── CONFIG ───────────────────────────────────────────────────────
+// Box dimensions — generous enough so text always fits inside
+const BW = {0:220, 1:160, 2:150, 3:132};
+const BH = {0:72,  1:66,  2:62,  3:72};
+// Font sizes
+const FS = {0:12.5, 1:11, 2:10, 3:9.5};
+const FW = {0:"700", 1:"700", 2:"600", 3:"400"};
+// Line height multiplier
+const LH = 1.32;
+// Gaps between siblings
+const SIB_GAP = {0:50, 1:30, 2:18};
+// Vertical gap between levels
+const GAP_Y = 82;
+const MARGIN = 50;
+
+const COL = {
+  0:{bg:"#B03A2E",bd:"#7B241C",glow:"rgba(176,58,46,0.5)"},
+  1:{bg:"#C87F0A",bd:"#8A5700",glow:"rgba(200,127,10,0.5)"},
+  2:{bg:"#1B4F72",bd:"#0E2C46",glow:"rgba(27,79,114,0.5)"},
+  3:{bg:"#1565A8",bd:"#0B3D6E",glow:"rgba(21,101,168,0.5)"}
+};
+const LVL_NAME = ["Root","Control Account","Planning Package","Work Package"];
+const STATUS_COL = {
+  "Complete":    {bg:"#1E844933",bd:"#1E8449",dot:"#52BE80"},
+  "In Progress": {bg:"#B7770D33",bd:"#B7770D",dot:"#F4D03F"},
+  "Not Started": {bg:"#42494933",bd:"#555",dot:"#808B96"},
+};
+
+// ─── STATE ────────────────────────────────────────────────────────
+const collapsed = new Set();
+let selected = null;
+let searchQ = "";
+let pan = {x:60, y:50};
+let zoom = 1;
+let dragging = false, dragLast = {x:0,y:0};
+
+// ─── HELPERS ──────────────────────────────────────────────────────
+function allNodes(n, r=[]){ r.push(n); (n.children||[]).forEach(c=>allNodes(c,r)); return r; }
+
+function getSpan(n){
+  const lv = n.level;
+  if(!n.children || !n.children.length || collapsed.has(n.id)) return BW[lv];
+  const g = SIB_GAP[Math.min(lv,2)];
+  const spans = n.children.map(getSpan);
+  return spans.reduce((a,b)=>a+b,0) + g*(spans.length-1);
+}
+
+function assignPos(n, x, y){
+  const lv = n.level;
+  const span = getSpan(n);
+  n._cx = x + span/2;          // center x
+  n._x  = n._cx - BW[lv]/2;   // left edge
+  n._y  = y;
+  n._bw = BW[lv]; n._bh = BH[lv]; n._span = span;
+  if(n.children && n.children.length && !collapsed.has(n.id)){
+    const g = SIB_GAP[Math.min(lv,2)];
+    let cx = x;
+    n.children.forEach(c => {
+      const cs = getSpan(c);
+      assignPos(c, cx, y + BH[lv] + GAP_Y);
+      cx += cs + g;
+    });
+  }
+}
+
+function getBounds(n, b={x0:1e9,y0:1e9,x1:-1e9,y1:-1e9}){
+  b.x0=Math.min(b.x0,n._x); b.y0=Math.min(b.y0,n._y);
+  b.x1=Math.max(b.x1,n._x+n._bw); b.y1=Math.max(b.y1,n._y+n._bh);
+  if(n.children&&!collapsed.has(n.id)) n.children.forEach(c=>getBounds(c,b));
+  return b;
+}
+
+// ─── SVG ──────────────────────────────────────────────────────────
+const svgEl = document.getElementById("canvas");
+const NS = "http://www.w3.org/2000/svg";
+function mk(tag,attrs,txt){
+  const e=document.createElementNS(NS,tag);
+  if(attrs) Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+  if(txt!==undefined) e.textContent=txt;
+  return e;
+}
+
+// Draw text lines perfectly centred inside a box
+function drawLabel(g, cx, cy, bh, lines, fs, fw, fill){
+  const lh_px = fs * LH;
+  const totalH = lines.length * lh_px;
+  const startY = cy - totalH/2 + lh_px * 0.82;
+  lines.forEach((line,i)=>{
+    g.appendChild(mk("text",{
+      x:cx, y:startY + i*lh_px,
+      "text-anchor":"middle",
+      "dominant-baseline":"auto",
+      "font-size":fs,
+      "font-weight":fw,
+      "font-family":"Arial,sans-serif",
+      fill
+    }, line));
+  });
+}
+
+function drawEdges(g, n){
+  if(!n.children||!n.children.length||collapsed.has(n.id)) return;
+  const px = n._cx, py = n._y + n._bh;
+  n.children.forEach(c=>{
+    const cx = c._cx, cy = c._y;
+    const my = (py+cy)/2;
+    g.appendChild(mk("path",{
+      d:`M${px},${py} V${my} H${cx} V${cy}`,
+      fill:"none", stroke:"#2E5F8A",
+      "stroke-width":"2.2",
+      "stroke-linecap":"round","stroke-linejoin":"round"
+    }));
+    drawEdges(g,c);
+  });
+}
+
+function drawNodes(g, n, hits){
+  const {_x:x, _y:y, _bw:bw, _bh:bh, _cx:cx, level, id} = n;
+  const col = COL[level];
+  const isSelected = selected && selected.id===id;
+  const dimmed = hits && !hits.has(id);
+  const hasKids = n.children && n.children.length>0;
+  const isCol = collapsed.has(id);
+
+  const ng = mk("g", {opacity: dimmed ? "0.2" : "1"});
+
+  // shadow
+  ng.appendChild(mk("rect",{x:x+3,y:y+4,width:bw,height:bh,rx:9,fill:"rgba(0,0,0,0.25)"}));
+
+  // selection glow
+  if(isSelected){
+    ng.appendChild(mk("rect",{x:x-6,y:y-6,width:bw+12,height:bh+12,rx:13,
+      fill:"none",stroke:col.glow,"stroke-width":"8",opacity:"0.7"}));
+  }
+
+  // box
+  const box = mk("rect",{
+    x,y,width:bw,height:bh,rx:9,
+    fill:col.bg,
+    stroke: isSelected ? "#FFFFFF" : col.bd,
+    "stroke-width": isSelected ? "2.5" : "1.8",
+    style:"cursor:pointer"
+  });
+  box.addEventListener("click", e=>{e.stopPropagation(); selectNode(n);});
+  ng.appendChild(box);
+
+  // top gloss stripe
+  ng.appendChild(mk("rect",{x,y,width:bw,height:6,rx:6,fill:"rgba(255,255,255,0.13)"}));
+
+  // WBS ID badge in top-left corner
+  const badge = mk("rect",{x:x+6,y:y+6,width:bw-12,height:14,rx:4,fill:"rgba(0,0,0,0.22)"});
+  ng.appendChild(badge);
+  ng.appendChild(mk("text",{
+    x:cx, y:y+16,
+    "text-anchor":"middle","font-size":"8.5","font-weight":"700",
+    "font-family":"Arial,sans-serif",fill:"rgba(255,255,255,0.75)"
+  }, id));
+
+  // Main label — centred in the lower 3/4 of the box
+  const labelY = y + bh*0.52 + bh*0.04;
+  const lines = n.label;
+  const fs = FS[level], fw = FW[level];
+  const lh_px = fs * LH;
+  const totalH = lines.length * lh_px;
+  const startY = labelY - totalH/2 + lh_px * 0.82;
+
+  lines.forEach((line,i)=>{
+    const t = mk("text",{
+      x:cx, y:startY + i*lh_px,
+      "text-anchor":"middle",
+      "font-size":fs, "font-weight":fw,
+      "font-family":"Arial,sans-serif",
+      fill:"white"
+    }, line);
+    t.style.pointerEvents = "none";
+    ng.appendChild(t);
+  });
+
+  // collapse/expand toggle button
+  if(hasKids){
+    const btn = mk("g",{style:"cursor:pointer"});
+    btn.appendChild(mk("circle",{cx:cx,cy:y+bh,r:10,fill:col.bd,stroke:"white","stroke-width":"1.5"}));
+    const sym = mk("text",{
+      x:cx, y:y+bh+4.5,
+      "text-anchor":"middle","font-size":"13","font-weight":"700",
+      "font-family":"Arial,sans-serif",fill:"white"
+    }, isCol ? "+" : "−");
+    sym.style.pointerEvents = "none";
+    btn.appendChild(sym);
+    btn.addEventListener("click", e=>{e.stopPropagation(); toggleCollapse(id);});
+    ng.appendChild(btn);
+  }
+
+  // WP count badge when collapsed
+  if(isCol && hasKids){
+    const wc = allNodes(n).filter(nn=>nn.level===3).length;
+    ng.appendChild(mk("rect",{x:x+bw-30,y:y+7,width:24,height:16,rx:8,fill:"rgba(255,255,255,0.22)"}));
+    const ct = mk("text",{
+      x:x+bw-18, y:y+18,
+      "text-anchor":"middle","font-size":"9","font-weight":"700",
+      "font-family":"Arial,sans-serif",fill:"white"
+    }, wc);
+    ct.style.pointerEvents = "none";
+    ng.appendChild(ct);
+  }
+
+  g.appendChild(ng);
+
+  if(!isCol && n.children) n.children.forEach(c=>drawNodes(g,c,hits));
+}
+
+function render(){
+  assignPos(TREE, MARGIN, MARGIN);
+  while(svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+
+  const defs = mk("defs");
+  const pat = mk("pattern",{id:"g40",width:"40",height:"40",patternUnits:"userSpaceOnUse"});
+  pat.appendChild(mk("path",{d:"M40 0L0 0 0 40",fill:"none",stroke:"#172840","stroke-width":"0.6"}));
+  defs.appendChild(pat);
+  svgEl.appendChild(defs);
+  svgEl.appendChild(mk("rect",{width:"100%",height:"100%",fill:"url(#g40)"}));
+
+  let hits = null;
+  if(searchQ.trim()){
+    const q = searchQ.toLowerCase();
+    const m = allNodes(TREE).filter(n=>
+      n.label.join(" ").toLowerCase().includes(q) ||
+      n.id.toLowerCase().includes(q) ||
+      (n.meta&&(n.meta.owner||"").toLowerCase().includes(q))
+    );
+    hits = new Set(m.map(n=>n.id));
+  }
+
+  const g = mk("g",{transform:`translate(${pan.x},${pan.y}) scale(${zoom})`});
+  drawEdges(g, TREE);
+  drawNodes(g, TREE, hits);
+  svgEl.appendChild(g);
+
+  document.getElementById("zoom-badge").textContent = Math.round(zoom*100)+"%";
+}
+
+// ─── FIT VIEW ─────────────────────────────────────────────────────
+function fitView(){
+  assignPos(TREE, MARGIN, MARGIN);
+  const b = getBounds(TREE);
+  const tw = b.x1 - b.x0 + MARGIN*2;
+  const th = b.y1 - b.y0 + MARGIN*2;
+  const wrap = document.getElementById("canvas-wrap");
+  const vw = wrap.clientWidth;
+  const vh = wrap.clientHeight;
+  zoom = Math.min(vw/tw, vh/th, 1);            // never zoom in above 100%
+  zoom = Math.max(zoom, 0.2);
+  // centre the tree
+  pan.x = (vw - tw*zoom)/2 + MARGIN*zoom - b.x0*zoom;
+  pan.y = (vh - th*zoom)/2 + MARGIN*zoom - b.y0*zoom;
+  render();
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────
+function toggleCollapse(id){ collapsed.has(id)?collapsed.delete(id):collapsed.add(id); render(); }
+function expandAll(){ collapsed.clear(); fitView(); }
+function collapseAll(){
+  function mark(n){ if(n.children&&n.children.length){collapsed.add(n.id);n.children.forEach(mark);}}
+  mark(TREE); collapsed.delete(TREE.id); fitView();
+}
+function doSearch(v){ searchQ=v; render(); }
+
+// ─── DETAIL PANEL ─────────────────────────────────────────────────
+function selectNode(n){
+  selected = (selected&&selected.id===n.id) ? null : n;
+  updatePanel(); render();
+}
+function closePanel(){ selected=null; updatePanel(); render(); }
+
+function updatePanel(){
+  const panel = document.getElementById("panel");
+  if(!selected){ panel.classList.remove("open"); return; }
+  panel.classList.add("open");
+
+  const col = COL[selected.level];
+  document.getElementById("panel-level").textContent = LVL_NAME[selected.level]+" · "+selected.id;
+  document.getElementById("panel-level").style.color = col.bg;
+  document.getElementById("panel-title").textContent = selected.label.join(" ");
+
+  const sc = STATUS_COL[selected.meta?.status] || STATUS_COL["Not Started"];
+  const badge = document.getElementById("panel-badge");
+  badge.textContent = "● "+(selected.meta?.status||"—");
+  badge.style.background = sc.bg;
+  badge.style.border = "1px solid "+sc.bd;
+
+  const body = document.getElementById("panel-body");
+  body.innerHTML = "";
+  [["📦 Deliverable",selected.meta?.deliverable],
+   ["👤 Owner",selected.meta?.owner],
+   ["📅 Timeframe",selected.meta?.timeframe],
+   ["📌 Notes",selected.meta?.notes]
+  ].forEach(([l,v])=>{
+    if(!v) return;
+    const d = document.createElement("div");
+    d.innerHTML = `<div class="detail-lbl">${l}</div><div class="detail-val">${v}</div>`;
+    body.appendChild(d);
+  });
+
+  const pc = document.getElementById("panel-children");
+  pc.innerHTML = "";
+  if(selected.children?.length){
+    const hdr = document.createElement("div");
+    hdr.className="detail-lbl"; hdr.style.marginBottom="8px";
+    hdr.textContent = "CONTAINS ("+selected.children.length+")";
+    pc.appendChild(hdr);
+    selected.children.forEach(child=>{
+      const row = document.createElement("div");
+      row.className = "child-row";
+      row.innerHTML = `<div class="child-dot" style="background:${COL[child.level].bg}"></div>
+        <span class="child-id">${child.id}</span>
+        <span class="child-lbl">${child.label.join(" ")}</span>`;
+      row.onclick = ()=>selectNode(child);
+      pc.appendChild(row);
+    });
+  }
+
+  const ps = document.getElementById("panel-stats");
+  ps.innerHTML = "";
+  if(selected.level < 3){
+    const an = allNodes(selected);
+    [{v:an.filter(n=>n.level===3).length, l:"Work Pkgs",   c:"#F4D03F"},
+     {v:an.filter(n=>n.level===2).length, l:"Plan. Pkgs",  c:"#85C1E9"},
+     {v:an.filter(n=>n.meta?.status==="Complete").length, l:"Complete", c:"#52BE80"}
+    ].forEach(s=>{
+      const d = document.createElement("div");
+      d.innerHTML = `<div class="stat-num" style="color:${s.c}">${s.v}</div><div class="stat-lbl">${s.l}</div>`;
+      ps.appendChild(d);
+    });
+  }
+}
+
+// ─── PAN & ZOOM ───────────────────────────────────────────────────
+const wrap = document.getElementById("canvas-wrap");
+
+wrap.addEventListener("mousedown", e=>{
+  const tag = e.target.tagName.toLowerCase();
+  if(tag==="rect"||tag==="circle"||tag==="text"||tag==="path") return;
+  dragging=true; dragLast={x:e.clientX,y:e.clientY};
+  wrap.classList.add("dragging");
+});
+window.addEventListener("mousemove", e=>{
+  if(!dragging) return;
+  pan.x += e.clientX-dragLast.x;
+  pan.y += e.clientY-dragLast.y;
+  dragLast={x:e.clientX,y:e.clientY};
+  render();
+});
+window.addEventListener("mouseup", ()=>{ dragging=false; wrap.classList.remove("dragging"); });
+
+wrap.addEventListener("wheel", e=>{
+  e.preventDefault();
+  const rect = wrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const f = e.deltaY < 0 ? 1.1 : 0.91;
+  const nz = Math.max(0.2, Math.min(3, zoom*f));
+  // zoom towards mouse position
+  pan.x = mx - (mx - pan.x) * (nz/zoom);
+  pan.y = my - (my - pan.y) * (nz/zoom);
+  zoom = nz;
+  render();
+},{passive:false});
+
+// touch
+let lastTouch=null;
+wrap.addEventListener("touchstart", e=>{ if(e.touches.length===1) lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY}; },{passive:true});
+wrap.addEventListener("touchmove", e=>{
+  if(e.touches.length===1&&lastTouch){
+    pan.x+=e.touches[0].clientX-lastTouch.x;
+    pan.y+=e.touches[0].clientY-lastTouch.y;
+    lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    render(); e.preventDefault();
+  }
+},{passive:false});
+
+// ─── INIT — wait for layout then auto-fit ─────────────────────────
+window.addEventListener("load", ()=>{ setTimeout(fitView, 80); });
+</script>
+</body>
+</html>

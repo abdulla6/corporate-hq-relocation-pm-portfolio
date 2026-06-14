@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RTM — HQ Relocation Project (Analytics Enhanced)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#F0F4F8;font-family:'Inter',Arial,sans-serif}
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* TOP BAR */
+#topbar{background:white;border-bottom:3px solid #E8ECF0;padding:10px 20px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,#3182CE,#2C5282);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.brand h1{color:#1A202C;font-size:13px;font-weight:800;letter-spacing:.3px}
+.brand .sub{color:#718096;font-size:10px;margin-top:1px;font-weight:400}
+.tbtn{border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;border:none;display:flex;align-items:center;gap:5px}
+.tbtn-blue{background:#EBF8FF;color:#2B6CB0;border:1.5px solid #BEE3F8}
+.tbtn-blue:hover{background:#BEE3F8}
+.tbtn-print{background:#F0FFF4;color:#276749;border:1.5px solid #9AE6B4}
+.tbtn-print:hover{background:#C6F6D5}
+.tbtn-purple{background:#FAF5FF;color:#6B46C1;border:1.5px solid #E9D8FD}
+.tbtn-purple:hover{background:#E9D8FD}
+.tbtn-orange{background:#FFFAF0;color:#C05621;border:1.5px solid #FBD38D}
+.tbtn-orange:hover{background:#FEEBC8}
+.view-toggle{margin-left:auto;display:flex;gap:6px;background:#F7FAFC;border-radius:8px;padding:4px;border:1.5px solid #E2E8F0}
+.view-btn{border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:transparent;color:#718096;transition:all .15s}
+.view-btn.active{background:#3182CE;color:white}
+
+/* SUMMARY CARDS */
+#cards{background:#F7FAFC;border-bottom:2px solid #E8ECF0;
+  padding:10px 20px;display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.card{background:white;border-radius:10px;padding:10px 16px;border:1.5px solid #E2E8F0;
+  display:flex;align-items:center;gap:10px;flex:1;min-width:140px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.05);cursor:pointer;transition:transform .1s}
+.card:hover{transform:translateY(-1px)}
+.card-icon{width:34px;height:34px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.card-num{font-size:22px;font-weight:800;line-height:1}
+.card-lbl{font-size:10px;color:#718096;font-weight:500;margin-top:1px}
+
+/* FILTERS */
+#filters{padding:8px 20px;background:white;border-bottom:2px solid #E8ECF0;
+  display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+#filters .fl{font-size:10px;color:#A0AEC0;font-weight:700;letter-spacing:.5px;margin-right:4px}
+.fchip{border-radius:20px;padding:4px 12px;font-size:10px;font-weight:700;
+  cursor:pointer;border:1.5px solid;transition:all .15s;background:white}
+.fchip.active{color:white !important}
+#searchbox{margin-left:auto;background:#F7FAFC;border:1.5px solid #E2E8F0;
+  border-radius:8px;padding:6px 12px;font-size:11px;color:#2D3748;
+  outline:none;width:220px;font-family:Inter,sans-serif}
+#searchbox:focus{border-color:#90CDF4;background:white}
+#searchbox::placeholder{color:#A0AEC0}
+
+/* MAIN TABLE AREA */
+#tablearea{flex:1;display:flex;overflow:hidden;min-height:0}
+#tablewrap{flex:1;overflow-y:auto;overflow-x:auto;padding:0}
+#tablewrap::-webkit-scrollbar{width:8px;height:8px;background:#F7FAFC}
+#tablewrap::-webkit-scrollbar-thumb{background:#CBD5E0;border-radius:4px}
+
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{background:#F7FAFC;color:#4A5568;font-size:10px;font-weight:700;
+  letter-spacing:.4px;text-transform:uppercase;padding:10px 12px;
+  border-bottom:2px solid #E2E8F0;white-space:nowrap;position:sticky;top:0;z-index:2;
+  border-right:1px solid #EDF2F7}
+thead th:last-child{border-right:none}
+tbody tr{border-bottom:1.5px solid #F7FAFC;cursor:pointer;transition:background .1s}
+tbody tr:hover{background:#EBF8FF}
+tbody tr.selected{background:#EBF8FF;box-shadow:inset 3px 0 0 #3182CE}
+td{padding:9px 12px;vertical-align:top;border-right:1px solid #F7FAFC}
+td:last-child{border-right:none}
+
+.req-id{font-weight:800;font-size:11px;white-space:nowrap}
+.cat-badge{display:inline-block;border-radius:20px;padding:2px 9px;
+  font-size:9px;font-weight:700;white-space:nowrap}
+.pri-badge{display:inline-block;border-radius:5px;padding:2px 8px;
+  font-size:9px;font-weight:700;white-space:nowrap}
+.status-badge{display:inline-block;border-radius:20px;padding:2px 9px;
+  font-size:9px;font-weight:700;white-space:nowrap}
+.risk-badge{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:2px 8px;
+  font-size:9px;font-weight:700;white-space:nowrap}
+.wbs-chip{display:inline-flex;align-items:center;gap:4px;background:#EBF8FF;
+  color:#2B6CB0;border:1px solid #BEE3F8;border-radius:6px;padding:2px 8px;
+  font-size:9px;font-weight:700;white-space:nowrap}
+.req-desc{color:#2D3748;font-weight:500;max-width:280px;line-height:1.5}
+.req-owner{color:#4A5568;white-space:nowrap}
+.req-source{color:#718096;font-size:10px}
+.variance-pos{color:#276749;font-weight:700}
+.variance-neg{color:#C53030;font-weight:700}
+
+/* hidden rows */
+tr.hidden{display:none}
+
+/* SIDE PANEL */
+#panel{width:380px;background:white;border-left:2px solid #E8ECF0;
+  display:none;flex-direction:column;overflow-y:auto;flex-shrink:0;
+  box-shadow:-4px 0 16px rgba(0,0,0,0.06)}
+#panel.open{display:flex}
+#panel::-webkit-scrollbar{width:5px;background:#F7FAFC}
+#panel::-webkit-scrollbar-thumb{background:#CBD5E0;border-radius:3px}
+#phdr{padding:15px 16px 12px;border-bottom:2px solid #F0F4F8;position:relative;flex-shrink:0}
+#pclose{background:none;border:none;color:#A0AEC0;font-size:18px;cursor:pointer;
+  position:absolute;right:14px;top:13px;line-height:1;padding:0;font-weight:300}
+#pclose:hover{color:#2D3748}
+.psec{padding:12px 16px;border-bottom:1.5px solid #F0F4F8;flex-shrink:0}
+.psl{color:#A0AEC0;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.psl::after{content:"";flex:1;height:1.5px;background:#F0F4F8}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.info-cell{background:#F7FAFC;border:1.5px solid #E2E8F0;border-radius:8px;padding:9px 10px}
+.ic-lbl{color:#A0AEC0;font-size:8.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.ic-val{color:#2D3748;font-size:11px;font-weight:600}
+.accept-box{background:linear-gradient(135deg,#F0FFF4,#E6FFFA);
+  border:1.5px solid #9AE6B4;border-radius:10px;padding:11px 13px}
+.accept-lbl{color:#276749;font-size:8.5px;font-weight:700;letter-spacing:.7px;
+  text-transform:uppercase;margin-bottom:5px}
+.accept-val{color:#22543D;font-size:11px;font-weight:500;line-height:1.6}
+.notes-box{background:#FFFBEB;border:1.5px solid #FAF089;border-radius:10px;padding:11px 13px}
+.notes-val{color:#744210;font-size:11px;font-weight:500;line-height:1.6}
+.budget-box{background:#EBF8FF;border:1.5px solid #90CDF4;border-radius:10px;padding:11px 13px}
+.budget-lbl{color:#2B6CB0;font-size:8.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:5px}
+.budget-val{color:#2C5282;font-size:11px;font-weight:500;line-height:1.6}
+.effort-box{background:#F0FFF4;border:1.5px solid #9AE6B4;border-radius:10px;padding:11px 13px}
+.effort-lbl{color:#276749;font-size:8.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:5px}
+.effort-val{color:#22543D;font-size:11px;font-weight:500;line-height:1.6}
+.dep-box{background:#FAF5FF;border:1.5px solid #D6BCFA;border-radius:10px;padding:11px 13px}
+.dep-lbl{color:#6B46C1;font-size:8.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:5px}
+.dep-val{color:#44337A;font-size:11px;font-weight:500;line-height:1.6}
+.history-box{background:#F7FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:11px 13px}
+.history-item{display:flex;gap:8px;margin-bottom:8px;font-size:11px}
+.history-item:last-child{margin-bottom:0}
+.history-dot{width:8px;height:8px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.history-date{color:#A0AEC0;font-size:9px;font-weight:600;white-space:nowrap}
+.history-text{color:#4A5568}
+
+/* PANEL TABS */
+.ptabs{display:flex;gap:4px;margin-top:10px;border-bottom:1.5px solid #E2E8F0;padding-bottom:8px}
+.ptab{border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;border:none;cursor:pointer;background:transparent;color:#718096;transition:all .15s}
+.ptab.active{background:#3182CE;color:white}
+.ptab:hover{background:#EDF2F7}
+.ptab-content{display:none}
+.ptab-content.active{display:block}
+
+/* ANALYTICS VIEW */
+#analyticsview{display:none;flex:1;overflow-y:auto;padding:20px;gap:20px;flex-wrap:wrap;align-content:flex-start}
+#analyticsview.active{display:flex}
+.achart-card{background:white;border-radius:12px;border:1.5px solid #E2E8F0;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);flex:1;min-width:320px;max-width:49%}
+.achart-title{color:#1A202C;font-size:12px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.achart-container{position:relative;height:220px}
+.ainfogrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;width:100%;margin-bottom:20px}
+.ainfocard{background:white;border-radius:10px;border:1.5px solid #E2E8F0;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.ainfo-num{font-size:24px;font-weight:800;line-height:1}
+.ainfo-lbl{font-size:10px;color:#718096;font-weight:500;margin-top:3px}
+
+/* TIMELINE VIEW */
+#timelineview{display:none;flex:1;overflow-y:auto;padding:20px;flex-direction:column;gap:16px}
+#timelineview.active{display:flex}
+.tl-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.tl-title{color:#1A202C;font-size:14px;font-weight:700}
+.tl-legend{display:flex;gap:12px;margin-left:auto}
+.tl-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#718096}
+.tl-dot{width:8px;height:8px;border-radius:2px}
+.tl-chart{background:white;border-radius:12px;border:1.5px solid #E2E8F0;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);flex:1;overflow-y:auto}
+.tl-row{display:flex;align-items:center;margin-bottom:6px;gap:8px}
+.tl-label{width:90px;font-size:10px;font-weight:700;color:#4A5568;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.tl-track{flex:1;height:22px;background:#F7FAFC;border-radius:4px;position:relative;overflow:hidden}
+.tl-bar{position:absolute;height:18px;top:2px;border-radius:3px;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;padding:0 6px;font-size:9px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-bar:hover{opacity:.85}
+.tl-ticks{display:flex;margin-left:98px;margin-bottom:8px;border-bottom:1.5px solid #E2E8F0;padding-bottom:4px}
+.tl-tick{flex:1;font-size:9px;color:#A0AEC0;text-align:center;font-weight:600}
+
+/* BOTTOM BAR */
+#botbar{background:white;border-top:2px solid #E8ECF0;padding:6px 20px;
+  display:flex;gap:18px;align-items:center;flex-shrink:0;flex-wrap:wrap;
+  box-shadow:0 -2px 6px rgba(0,0,0,0.04)}
+.bp{display:flex;align-items:center;gap:5px}
+.bpn{font-size:13px;font-weight:800}
+.bpl{color:#A0AEC0;font-size:10px;font-weight:500}
+.bsep{width:1px;height:16px;background:#E2E8F0}
+
+/* WBS TREE */
+.wbs-tree{font-size:11px;color:#4A5568}
+.wbs-node{margin-bottom:4px;padding-left:16px;position:relative}
+.wbs-node::before{content:"";position:absolute;left:4px;top:0;width:1px;height:100%;background:#E2E8F0}
+.wbs-node-head{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;cursor:pointer}
+.wbs-node-head:hover{background:#F7FAFC}
+.wbs-req-count{font-size:9px;color:#718096;background:#EDF2F7;padding:1px 6px;border-radius:10px}
+.wbs-budget{font-size:9px;color:#2B6CB0;font-weight:600;margin-left:auto}
+
+/* print */
+@media print{
+  #topbar .tbtn,#filters,#panel,#botbar,#analyticsview,#timelineview{display:none!important}
+  #app{height:auto}
+  #tablearea{overflow:visible}
+  #tablewrap{overflow:visible}
+  table{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="brand">
+    <div class="brand-icon">📋</div>
+    <div>
+      <h1>REQUIREMENTS TRACEABILITY MATRIX (RTM)</h1>
+      <div class="sub">HQ Relocation Project &nbsp;·&nbsp; CS Company &nbsp;·&nbsp; 38 Requirements &nbsp;·&nbsp; Analytics Enhanced &nbsp;·&nbsp; EGP 2,000,000</div>
+    </div>
+  </div>
+  <button class="tbtn tbtn-blue" onclick="clearFilters()">↺ Show All</button>
+  <button class="tbtn tbtn-print" onclick="exportCSV()">⬇ Export CSV</button>
+  <button class="tbtn tbtn-purple" onclick="window.print()">🖨 Print / PDF</button>
+  <div class="view-toggle">
+    <button class="view-btn active" id="vbtn-table" onclick="switchView('table')">📋 Table</button>
+    <button class="view-btn" id="vbtn-analytics" onclick="switchView('analytics')">📊 Analytics</button>
+    <button class="view-btn" id="vbtn-timeline" onclick="switchView('timeline')">📅 Timeline</button>
+  </div>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div id="cards">
+  <div class="card" onclick="switchView('table');clearFilters()">
+    <div class="card-icon" style="background:#EBF8FF">📊</div>
+    <div><div class="card-num" style="color:#2B6CB0" id="card-total">38</div><div class="card-lbl">Total Requirements</div></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchView('table');filterCat('Business')">
+    <div class="card-icon" style="background:#EBF8FF">💼</div>
+    <div><div class="card-num" style="color:#2B6CB0">7</div><div class="card-lbl">Business</div></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchView('table');filterCat('Stakeholder')">
+    <div class="card-icon" style="background:#FAF5FF">👥</div>
+    <div><div class="card-num" style="color:#6B46C1">9</div><div class="card-lbl">Stakeholder</div></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchView('table');filterCat('Functional')">
+    <div class="card-icon" style="background:#F0FFF4">⚙️</div>
+    <div><div class="card-num" style="color:#276749">10</div><div class="card-lbl">Functional</div></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchView('table');filterCat('Non-Functional')">
+    <div class="card-icon" style="background:#FFFAF0">🔧</div>
+    <div><div class="card-num" style="color:#C05621">6</div><div class="card-lbl">Non-Functional</div></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchView('table');filterCat('Regulatory')">
+    <div class="card-icon" style="background:#FFF5F5">⚖️</div>
+    <div><div class="card-num" style="color:#C53030">6</div><div class="card-lbl">Regulatory</div></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchView('analytics')">
+    <div class="card-icon" style="background:#FFF5F5">🔴</div>
+    <div><div class="card-num" style="color:#C53030" id="card-highrisk">0</div><div class="card-lbl">High Risk (>60)</div></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchView('analytics')">
+    <div class="card-icon" style="background:#FFFAF0">💰</div>
+    <div><div class="card-num" style="color:#C05621" id="card-budget">0%</div><div class="card-lbl">Budget Used</div></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchView('timeline')">
+    <div class="card-icon" style="background:#FEFCBF">⏰</div>
+    <div><div class="card-num" style="color:#744210" id="card-overdue">0</div><div class="card-lbl">Overdue / <30d</div></div>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div id="filters">
+  <span class="fl">FILTER:</span>
+  <span class="fchip active" id="chip-all" style="color:#2B6CB0;border-color:#90CDF4;background:#EBF8FF" onclick="filterCat('all')">All</span>
+  <span class="fchip" id="chip-Business"     style="color:#2B6CB0;border-color:#BEE3F8"   onclick="filterCat('Business')">💼 Business</span>
+  <span class="fchip" id="chip-Stakeholder"  style="color:#6B46C1;border-color:#E9D8FD"   onclick="filterCat('Stakeholder')">👥 Stakeholder</span>
+  <span class="fchip" id="chip-Functional"   style="color:#276749;border-color:#9AE6B4"   onclick="filterCat('Functional')">⚙️ Functional</span>
+  <span class="fchip" id="chip-Non-Functional" style="color:#C05621;border-color:#FBD38D"  onclick="filterCat('Non-Functional')">🔧 Non-Functional</span>
+  <span class="fchip" id="chip-Regulatory"   style="color:#C53030;border-color:#FEB2B2"   onclick="filterCat('Regulatory')">⚖️ Regulatory</span>
+  <span class="fl" style="margin-left:10px">STATUS:</span>
+  <span class="fchip" id="schip-Complete"    style="color:#276749;border-color:#9AE6B4"   onclick="filterStatus('Complete')">✅ Complete</span>
+  <span class="fchip" id="schip-In Progress" style="color:#744210;border-color:#F6E05E"   onclick="filterStatus('In Progress')">🔄 In Progress</span>
+  <span class="fchip" id="schip-Not Started" style="color:#4A5568;border-color:#CBD5E0"   onclick="filterStatus('Not Started')">⏳ Not Started</span>
+  <input id="searchbox" type="text" placeholder="🔍  Search requirements, owners, WBS, notes…" oninput="doSearch(this.value)">
+</div>
+
+<!-- TABLE + PANEL -->
+<div id="tablearea">
+  <div id="tablewrap">
+    <table id="rtm-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Category</th>
+          <th>Requirement Description</th>
+          <th>Source</th>
+          <th>Priority</th>
+          <th>Risk</th>
+          <th>Due Date</th>
+          <th>WBS Link</th>
+          <th>Work Package</th>
+          <th>Verification</th>
+          <th>Status</th>
+          <th>Owner</th>
+          <th>Budget (EGP)</th>
+          <th>Variance</th>
+        </tr>
+      </thead>
+      <tbody id="rtm-body">
+      </tbody>
+    </table>
+  </div>
+  <div id="panel">
+    <div id="phdr">
+      <button id="pclose" onclick="closeP()">✕</button>
+      <div id="p-id" style="font-size:11px;font-weight:800;margin-bottom:5px"></div>
+      <div id="p-title" style="color:#1A202C;font-size:14px;font-weight:700;line-height:1.3;margin-bottom:5px"></div>
+      <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+        <span id="p-cat-badge" class="cat-badge"></span>
+        <span id="p-pri-badge" class="pri-badge"></span>
+        <span id="p-status-badge" class="status-badge"></span>
+        <span id="p-risk-badge" class="risk-badge"></span>
+      </div>
+      <div class="ptabs">
+        <button class="ptab active" onclick="switchPTab('details')">Details</button>
+        <button class="ptab" onclick="switchPTab('deps')">Dependencies</button>
+        <button class="ptab" onclick="switchPTab('budget')">Budget & Effort</button>
+        <button class="ptab" onclick="switchPTab('history')">Audit Trail</button>
+      </div>
+    </div>
+    <div id="ptab-details" class="ptab-content active">
+      <div class="psec">
+        <div class="psl">Details</div>
+        <div class="info-grid">
+          <div class="info-cell"><div class="ic-lbl">Source</div><div class="ic-val" id="p-source"></div></div>
+          <div class="info-cell"><div class="ic-lbl">Owner</div><div class="ic-val" id="p-owner"></div></div>
+          <div class="info-cell"><div class="ic-lbl">WBS ID</div><div class="ic-val" id="p-wbs"></div></div>
+          <div class="info-cell"><div class="ic-lbl">Verification</div><div class="ic-val" id="p-method"></div></div>
+          <div class="info-cell"><div class="ic-lbl">Due Date</div><div class="ic-val" id="p-due"></div></div>
+          <div class="info-cell"><div class="ic-lbl">Risk Score</div><div class="ic-val" id="p-risk"></div></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="psl">Work Package</div>
+        <div style="background:#EBF8FF;border:1.5px solid #90CDF4;border-radius:8px;padding:10px 12px">
+          <div style="color:#A0AEC0;font-size:8.5px;font-weight:700;text-transform:uppercase;margin-bottom:4px">DELIVERS THIS REQUIREMENT</div>
+          <div id="p-wbs-name" style="color:#2B6CB0;font-size:12px;font-weight:700"></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="psl">Acceptance Criteria</div>
+        <div class="accept-box">
+          <div class="accept-lbl">✓ Met When:</div>
+          <div class="accept-val" id="p-criteria"></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="psl">Notes &amp; Context</div>
+        <div class="notes-box">
+          <div class="notes-val" id="p-notes"></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="psl">Full Description</div>
+        <div id="p-desc" style="color:#4A5568;font-size:11px;line-height:1.7;font-weight:400"></div>
+      </div>
+    </div>
+    <div id="ptab-deps" class="ptab-content">
+      <div class="psec">
+        <div class="psl">Prerequisite Requirements</div>
+        <div class="dep-box">
+          <div class="dep-lbl">This requirement depends on:</div>
+          <div class="dep-val" id="p-deps-list"></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="psl">Impact Analysis</div>
+        <div class="notes-box">
+          <div class="notes-val" id="p-impact"></div>
+        </div>
+      </div>
+    </div>
+    <div id="ptab-budget" class="ptab-content">
+      <div class="psec">
+        <div class="psl">Budget Allocation</div>
+        <div class="budget-box">
+          <div class="budget-lbl">Financial Tracking (EGP)</div>
+          <div class="budget-val" id="p-budget"></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="psl">Effort Tracking</div>
+        <div class="effort-box">
+          <div class="effort-lbl">Estimated vs Actual Hours</div>
+          <div class="effort-val" id="p-effort"></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="psl">WBS Coverage</div>
+        <div class="wbs-tree" id="p-wbs-tree"></div>
+      </div>
+    </div>
+    <div id="ptab-history" class="ptab-content">
+      <div class="psec">
+        <div class="psl">Change Log & Audit Trail</div>
+        <div class="history-box" id="p-history"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYTICS VIEW -->
+<div id="analyticsview">
+  <div class="ainfogrid">
+    <div class="ainfocard">
+      <div class="ainfo-num" style="color:#2B6CB0" id="ainfo-total">38</div>
+      <div class="ainfo-lbl">Total Requirements</div>
+    </div>
+    <div class="ainfocard">
+      <div class="ainfo-num" style="color:#276749" id="ainfo-complete">0</div>
+      <div class="ainfo-lbl">Complete</div>
+    </div>
+    <div class="ainfocard">
+      <div class="ainfo-num" style="color:#744210" id="ainfo-progress">7</div>
+      <div class="ainfo-lbl">In Progress</div>
+    </div>
+    <div class="ainfocard">
+      <div class="ainfo-num" style="color:#C53030" id="ainfo-highrisk">0</div>
+      <div class="ainfo-lbl">High Risk (>60)</div>
+    </div>
+    <div class="ainfocard">
+      <div class="ainfo-num" style="color:#C05621" id="ainfo-budget">0%</div>
+      <div class="ainfo-lbl">Budget Consumed</div>
+    </div>
+    <div class="ainfocard">
+      <div class="ainfo-num" style="color:#6B46C1" id="ainfo-forecast">—</div>
+      <div class="ainfo-lbl">Forecasted Completion</div>
+    </div>
+  </div>
+  <div class="achart-card">
+    <div class="achart-title">📊 Requirements by Category</div>
+    <div class="achart-container"><canvas id="chart-cat"></canvas></div>
+  </div>
+  <div class="achart-card">
+    <div class="achart-title">📈 Status Breakdown</div>
+    <div class="achart-container"><canvas id="chart-status"></canvas></div>
+  </div>
+  <div class="achart-card">
+    <div class="achart-title">🔴 Risk Score Distribution</div>
+    <div class="achart-container"><canvas id="chart-risk"></canvas></div>
+  </div>
+  <div class="achart-card">
+    <div class="achart-title">💰 Budget vs Actual by Category</div>
+    <div class="achart-container"><canvas id="chart-budget"></canvas></div>
+  </div>
+  <div class="achart-card">
+    <div class="achart-title">👤 Owner Workload</div>
+    <div class="achart-container"><canvas id="chart-owner"></canvas></div>
+  </div>
+  <div class="achart-card">
+    <div class="achart-title">📅 Priority vs Status Heatmap</div>
+    <div class="achart-container"><canvas id="chart-heatmap"></canvas></div>
+  </div>
+  <div class="achart-card" style="max-width:100%;flex-basis:100%">
+    <div class="achart-title">🌳 WBS Tree & Coverage</div>
+    <div class="wbs-tree" id="wbs-tree-analytics" style="padding:10px"></div>
+  </div>
+</div>
+
+<!-- TIMELINE VIEW -->
+<div id="timelineview">
+  <div class="tl-header">
+    <div class="tl-title">Project Timeline — Requirement Due Dates</div>
+    <div class="tl-legend">
+      <div class="tl-legend-item"><div class="tl-dot" style="background:#276749"></div>Complete</div>
+      <div class="tl-legend-item"><div class="tl-dot" style="background:#D69E2E"></div>In Progress</div>
+      <div class="tl-legend-item"><div class="tl-dot" style="background:#A0AEC0"></div>Not Started</div>
+      <div class="tl-legend-item"><div class="tl-dot" style="background:#C53030"></div>Overdue</div>
+    </div>
+  </div>
+  <div class="tl-chart" id="tl-chart"></div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="botbar">
+  <div class="bp"><span class="bpn" style="color:#3182CE" id="bot-total">38</span><span class="bpl">total requirements</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#276749" id="bot-complete">0</span><span class="bpl">complete</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#744210" id="bot-progress">7</span><span class="bpl">in progress</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#718096" id="bot-notstarted">31</span><span class="bpl">not started</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#E53E3E" id="bot-high">35</span><span class="bpl">high priority</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#DD6B20" id="bot-medium">3</span><span class="bpl">medium priority</span></div>
+  <div class="bsep"></div>
+  <div class="bp"><span class="bpn" style="color:#C53030" id="bot-risk">0</span><span class="bpl">high risk</span></div>
+  <span style="margin-left:auto;color:#CBD5E0;font-size:9px;font-weight:500">RTM Analytics Enhanced · HQ Relocation · CS Company · EGP 2,000,000 · Analysis Date: 13 Jun 2026</span>
+</div>
+</div>
+
+<script>
+const TODAY = new Date("2026-06-13");
+
+const REQS = [
+  {"id": "BR-01", "cat": "Business", "desc": "Relocate CS Company headquarters to a larger, modern facility that supports current and future operations.", "source": "COO / CEO", "priority": "High", "wbs": "2.1.2", "wbs_name": "Lease Negotiation", "method": "Review", "criteria": "Signed lease agreement executed by 01 Sep 2026.", "status": "In Progress", "owner": "CFO", "notes": "Run parallel offers on top 2 sites to protect negotiation leverage.", "dueDate": "2026-09-01", "dependencies": [], "estimatedHours": 120, "actualHours": 85, "budgetEgp": 150000, "spentEgp": 95000, "history": [{"date": "2026-05-01", "text": "Requirement baselined. Budget approved.", "type": "baseline"}, {"date": "2026-05-20", "text": "Status changed to In Progress. Site shortlist down to 3.", "type": "status"}, {"date": "2026-06-10", "text": "Parallel offers initiated on top 2 sites.", "type": "note"}]},
+  {"id": "BR-02", "cat": "Business", "desc": "New HQ must accommodate a minimum 15% increase in client headcount capacity beyond current seat count.", "source": "CEO / CS Head", "priority": "High", "wbs": "2.2.1", "wbs_name": "Space Design & Procurement", "method": "Inspection", "criteria": "Approved floor plan confirms +15% growth zone with dedicated expansion area.", "status": "Not Started", "owner": "Facilities Manager", "notes": "Growth zone to be activated by July 2027 per benefits plan.", "dueDate": "2026-11-30", "dependencies": ["BR-01"], "estimatedHours": 80, "actualHours": 0, "budgetEgp": 50000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "BR-03", "cat": "Business", "desc": "Project must deliver a minimum 10% reduction in annual operating costs compared to current HQ baseline.", "source": "CFO", "priority": "High", "wbs": "4.2.2", "wbs_name": "Benefits Report & Project Closure", "method": "Analysis", "criteria": "Benefits realisation report shows ≥10% cost saving signed off by COO.", "status": "Not Started", "owner": "CFO / Finance Lead", "notes": "Cost baseline established at project start. Monthly tracking from Feb 2027.", "dueDate": "2027-02-28", "dependencies": ["BR-06"], "estimatedHours": 60, "actualHours": 0, "budgetEgp": 20000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined. Cost baseline recorded.", "type": "baseline"}]},
+  {"id": "BR-04", "cat": "Business", "desc": "All satellite site accounting functions must be consolidated into the new HQ within 30 days of physical move.", "source": "CFO / Finance Lead", "priority": "High", "wbs": "4.2.1", "wbs_name": "Accounting Consolidation", "method": "Demonstration", "criteria": "First consolidated month-end close completed successfully by 10 Mar 2027.", "status": "Not Started", "owner": "Finance Lead", "notes": "Historical data migrated with full audit trail.", "dueDate": "2027-03-10", "dependencies": ["BR-06", "FR-08"], "estimatedHours": 200, "actualHours": 0, "budgetEgp": 80000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "BR-05", "cat": "Business", "desc": "Total project cost must not exceed the approved budget of EGP 2,000,000. Any variance >5% requires sponsor approval.", "source": "COO", "priority": "High", "wbs": "1.1.2", "wbs_name": "RAID Log & Reporting", "method": "Review", "criteria": "Monthly cost reports show cumulative spend within approved budget envelope.", "status": "In Progress", "owner": "PM / CFO", "notes": "Contingency of EGP 200,000 (10%) is included in the budget.", "dueDate": "2027-01-31", "dependencies": [], "estimatedHours": 160, "actualHours": 60, "budgetEgp": 50000, "spentEgp": 18000, "history": [{"date": "2026-05-01", "text": "Requirement baselined. Budget envelope set at EGP 2,000,000.", "type": "baseline"}, {"date": "2026-05-15", "text": "Status changed to In Progress. Monthly reporting cycle initiated.", "type": "status"}, {"date": "2026-06-05", "text": "May cost report submitted. Spend at 9% of budget.", "type": "note"}]},
+  {"id": "BR-06", "cat": "Business", "desc": "All staff must be fully operational at the new HQ by 31 January 2027.", "source": "COO", "priority": "High", "wbs": "4.1.2", "wbs_name": "Physical Relocation", "method": "Review", "criteria": "All-staff operational readiness check passed. Old HQ keys returned by 05 Feb 2027.", "status": "Not Started", "owner": "Facilities / HR", "notes": "3-phase move: IT/Finance → HR/Sales → CS teams.", "dueDate": "2027-01-31", "dependencies": ["FR-07", "FR-09", "FR-10", "RR-02", "RR-03", "RR-04"], "estimatedHours": 240, "actualHours": 0, "budgetEgp": 120000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined. Move date confirmed.", "type": "baseline"}]},
+  {"id": "BR-07", "cat": "Business", "desc": "Business continuity must be maintained throughout the project — no critical service disruption for clients.", "source": "CEO", "priority": "High", "wbs": "3.2.1", "wbs_name": "Migration Weekend Execution", "method": "Demonstration", "criteria": "Zero critical system downtime. Client-facing services unaffected throughout move.", "status": "Not Started", "owner": "IT Director", "notes": "IT migration limited to one weekend. Rollback plan required before cutover.", "dueDate": "2027-01-31", "dependencies": ["FR-05", "NFR-01"], "estimatedHours": 100, "actualHours": 0, "budgetEgp": 30000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined. Zero-downtime mandate confirmed.", "type": "baseline"}]},
+  {"id": "SR-01", "cat": "Stakeholder", "desc": "COO (Project Sponsor) must receive bi-weekly milestone progress reports including cost, schedule, and risk status.", "source": "COO", "priority": "High", "wbs": "1.1.2", "wbs_name": "RAID Log & Reporting", "method": "Review", "criteria": "Bi-weekly steering committee reports delivered and acknowledged by COO throughout project.", "status": "In Progress", "owner": "Project Manager", "notes": "Reports include RAG status, budget variance, RAID updates.", "dueDate": "2027-01-31", "dependencies": ["BR-05"], "estimatedHours": 80, "actualHours": 30, "budgetEgp": 15000, "spentEgp": 5000, "history": [{"date": "2026-05-01", "text": "Requirement baselined. Reporting cadence established.", "type": "baseline"}, {"date": "2026-05-15", "text": "Status changed to In Progress. First report delivered.", "type": "status"}]},
+  {"id": "SR-02", "cat": "Stakeholder", "desc": "CFO must be involved in all lease negotiation milestones and co-sign the final lease agreement.", "source": "CFO", "priority": "High", "wbs": "2.1.2", "wbs_name": "Lease Negotiation", "method": "Review", "criteria": "CFO signature on all heads of terms and final lease document.", "status": "Not Started", "owner": "CFO", "notes": "Legal Counsel to review all lease terms before signature.", "dueDate": "2026-09-15", "dependencies": ["BR-01"], "estimatedHours": 40, "actualHours": 0, "budgetEgp": 5000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "SR-03", "cat": "Stakeholder", "desc": "All employees must receive formal notification of the move at least 8 weeks before relocation date.", "source": "HR Director / Employees", "priority": "High", "wbs": "4.1.1", "wbs_name": "Change Mgmt & Comms", "method": "Review", "criteria": "All-staff communication sent with move date, timeline, and support information by Nov 2026.", "status": "Not Started", "owner": "HR Director", "notes": "FAQ portal launched alongside announcement.", "dueDate": "2026-11-30", "dependencies": ["NFR-06", "SR-09"], "estimatedHours": 60, "actualHours": 0, "budgetEgp": 10000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "SR-04", "cat": "Stakeholder", "desc": "Union representatives must be formally consulted before any public announcement of the relocation.", "source": "Union Reps", "priority": "High", "wbs": "1.1.3", "wbs_name": "Stakeholder Engagement", "method": "Review", "criteria": "Documented consultation meeting minutes signed off by union reps.", "status": "In Progress", "owner": "HR Director", "notes": "All commitments to be put in writing. Monthly formal check-ins throughout project.", "dueDate": "2026-08-31", "dependencies": [], "estimatedHours": 50, "actualHours": 20, "budgetEgp": 8000, "spentEgp": 3000, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}, {"date": "2026-05-10", "text": "Status changed to In Progress. First union consultation held.", "type": "status"}, {"date": "2026-06-01", "text": "June check-in completed. Minutes signed.", "type": "note"}]},
+  {"id": "SR-05", "cat": "Stakeholder", "desc": "Key customers must be notified of the relocation with a minimum 8 weeks advance notice.", "source": "Sales Head / Key Customers", "priority": "High", "wbs": "4.1.1", "wbs_name": "Change Mgmt & Comms", "method": "Review", "criteria": "Client notification letters/emails sent and delivery confirmed. Dedicated liaison contact provided.", "status": "Not Started", "owner": "Sales Head", "notes": "Account Managers briefed with client FAQ script before external comms.", "dueDate": "2026-12-01", "dependencies": ["NFR-06"], "estimatedHours": 40, "actualHours": 0, "budgetEgp": 8000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "SR-06", "cat": "Stakeholder", "desc": "IT Director must approve the IT migration plan including documented rollback triggers before cutover.", "source": "IT Director", "priority": "High", "wbs": "3.1.2", "wbs_name": "Network Testing & Sign-Off", "method": "Review", "criteria": "Signed migration plan and rollback document approved by IT Director at least 1 week before migration.", "status": "Not Started", "owner": "IT Director", "notes": "Rollback triggers must be pre-defined and agreed with vendor.", "dueDate": "2026-12-20", "dependencies": ["FR-02", "NFR-02"], "estimatedHours": 30, "actualHours": 0, "budgetEgp": 5000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "SR-07", "cat": "Stakeholder", "desc": "Landlord must receive monthly project progress updates and have a named project contact throughout the lease period.", "source": "Landlord", "priority": "Medium", "wbs": "2.1.2", "wbs_name": "Lease Negotiation", "method": "Review", "criteria": "Monthly update reports sent to landlord. Formal handover documentation prepared at project close.", "status": "In Progress", "owner": "CFO", "notes": "Involve Legal Counsel in all access and fit-out change discussions.", "dueDate": "2027-01-31", "dependencies": ["BR-01"], "estimatedHours": 40, "actualHours": 15, "budgetEgp": 5000, "spentEgp": 2000, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}, {"date": "2026-06-01", "text": "Status changed to In Progress. First landlord report sent.", "type": "status"}]},
+  {"id": "SR-08", "cat": "Stakeholder", "desc": "Local Municipality must receive all permit applications at least 8 weeks ahead of construction start.", "source": "Local Municipality", "priority": "High", "wbs": "2.2.1", "wbs_name": "Space Design & Procurement", "method": "Review", "criteria": "All permit applications submitted by 01 Aug 2026. Approvals confirmed before 01 Oct 2026.", "status": "Not Started", "owner": "Legal Counsel", "notes": "Legal Counsel to be proactive — early pre-submission consultation with municipality recommended.", "dueDate": "2026-08-01", "dependencies": ["BR-01"], "estimatedHours": 60, "actualHours": 0, "budgetEgp": 15000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "SR-09", "cat": "Stakeholder", "desc": "Change Champions network must be established and briefed before all-staff announcement.", "source": "HR Director", "priority": "Medium", "wbs": "1.1.3", "wbs_name": "Stakeholder Engagement", "method": "Review", "criteria": "Change Champions identified, briefed, and active before general staff announcement.", "status": "Not Started", "owner": "HR Director", "notes": "Champions to receive advance information and weekly briefings.", "dueDate": "2026-10-15", "dependencies": ["SR-04"], "estimatedHours": 30, "actualHours": 0, "budgetEgp": 5000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-01", "cat": "Functional", "desc": "New HQ floor plan must accommodate all current departments with dedicated zones for each plus a 15% expansion area.", "source": "Facilities Manager / CS Head", "priority": "High", "wbs": "2.2.1", "wbs_name": "Space Design & Procurement", "method": "Inspection", "criteria": "Floor plan approved by COO showing all departments, growth zone, meeting rooms, and common areas.", "status": "Not Started", "owner": "Facilities Manager", "notes": "Include collaboration spaces, quiet zones, reception, and server room.", "dueDate": "2026-09-30", "dependencies": ["BR-01", "SR-08"], "estimatedHours": 100, "actualHours": 0, "budgetEgp": 40000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-02", "cat": "Functional", "desc": "Complete IT and network infrastructure must be installed and tested at new HQ before move date.", "source": "IT Director", "priority": "High", "wbs": "3.1.1", "wbs_name": "IT & Telecom Installation", "method": "Test", "criteria": "Server room, network switches, structured cabling, and fibre all commissioned and tested.", "status": "Not Started", "owner": "IT Director", "notes": "IT infrastructure install to begin during fit-out phase (SS+2 weeks after construction start).", "dueDate": "2026-12-15", "dependencies": ["FR-01", "RR-01"], "estimatedHours": 300, "actualHours": 0, "budgetEgp": 250000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined. Vendor RFP issued.", "type": "baseline"}]},
+  {"id": "FR-03", "cat": "Functional", "desc": "All business-critical applications must be accessible and performing normally from new HQ from day one.", "source": "IT Director / All Staff", "priority": "High", "wbs": "3.1.2", "wbs_name": "Network Testing & Sign-Off", "method": "UAT", "criteria": "UAT sign-off for all critical applications. Test results documented and approved by IT Director.", "status": "Not Started", "owner": "IT Director", "notes": "UAT to run for 4 weeks in parallel before migration cutover.", "dueDate": "2026-12-31", "dependencies": ["FR-02", "FR-04"], "estimatedHours": 160, "actualHours": 0, "budgetEgp": 30000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-04", "cat": "Functional", "desc": "Fibre broadband connectivity and VoIP telephony must be live and tested at new HQ on move day.", "source": "IT Director / Telecom Provider", "priority": "High", "wbs": "3.1.1", "wbs_name": "IT & Telecom Installation", "method": "Test", "criteria": "Full-speed connectivity test and VoIP call quality test passed 2 weeks before go-live.", "status": "Not Started", "owner": "Telecom Provider", "notes": "Fibre order must be placed in Phase 3 — 6-8 week lead time.", "dueDate": "2026-12-20", "dependencies": ["FR-02"], "estimatedHours": 80, "actualHours": 0, "budgetEgp": 80000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-05", "cat": "Functional", "desc": "Zero data loss during server and system migration from old HQ to new HQ.", "source": "IT Director", "priority": "High", "wbs": "3.2.1", "wbs_name": "Migration Weekend Execution", "method": "Test", "criteria": "Pre- and post-migration data integrity check confirms zero data loss. Checksums validated.", "status": "Not Started", "owner": "IT Migration Vendor", "notes": "Full backup completed immediately before cutover. Rollback available for 72 hours post-migration.", "dueDate": "2027-01-15", "dependencies": ["FR-03", "NFR-02"], "estimatedHours": 120, "actualHours": 0, "budgetEgp": 60000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-06", "cat": "Functional", "desc": "Access control system must be installed, commissioned, and tested at all entry points before staff arrival.", "source": "Facilities Manager / Security", "priority": "High", "wbs": "2.2.2", "wbs_name": "Construction, Snag & Handover", "method": "Inspection", "criteria": "Security provider sign-off. All access cards/fobs issued and tested before move day.", "status": "Not Started", "owner": "Security Provider", "notes": "Security audit must be completed as part of site handover.", "dueDate": "2027-01-20", "dependencies": ["FR-07"], "estimatedHours": 80, "actualHours": 0, "budgetEgp": 45000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-07", "cat": "Functional", "desc": "All fit-out snag items must be resolved and signed off before the physical move commences.", "source": "Facilities Manager", "priority": "High", "wbs": "2.2.2", "wbs_name": "Construction, Snag & Handover", "method": "Inspection", "criteria": "Zero open Priority 1 or Priority 2 snag items at formal handover. Certificate of Practical Completion received.", "status": "Not Started", "owner": "Facilities Manager", "notes": "Snag inspection conducted jointly by PM, Facilities Manager, and contractor.", "dueDate": "2027-01-10", "dependencies": ["FR-01", "RR-01", "RR-02", "RR-03", "RR-04"], "estimatedHours": 120, "actualHours": 0, "budgetEgp": 50000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-08", "cat": "Functional", "desc": "All accounting data from satellite sites must be migrated to HQ systems with a complete and auditable data trail.", "source": "Finance Lead / External Auditors", "priority": "High", "wbs": "4.2.1", "wbs_name": "Accounting Consolidation", "method": "Review", "criteria": "Data migration validated by Finance Lead. Audit trail reviewed by External Auditors. No reconciliation discrepancies.", "status": "Not Started", "owner": "Finance Lead", "notes": "Historical data extract, cleanse, and load to be completed before training begins.", "dueDate": "2027-02-15", "dependencies": ["BR-04"], "estimatedHours": 200, "actualHours": 0, "budgetEgp": 70000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-09", "cat": "Functional", "desc": "All employee workstations must be configured, connected, and tested before staff arrive on move day.", "source": "IT Director / HR", "priority": "High", "wbs": "4.1.2", "wbs_name": "Physical Relocation", "method": "Inspection", "criteria": "100% of workstations powered on, connected, and confirmed operational. Desk assignment plan communicated.", "status": "Not Started", "owner": "IT Director / Facilities", "notes": "Workstation setup to be completed during the weekend of the move.", "dueDate": "2027-01-30", "dependencies": ["FR-06", "FR-07"], "estimatedHours": 100, "actualHours": 0, "budgetEgp": 30000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "FR-10", "cat": "Functional", "desc": "Reception, all meeting rooms, breakout areas, and kitchen/welfare facilities must be fully operational on day one.", "source": "Facilities Manager", "priority": "Medium", "wbs": "2.2.2", "wbs_name": "Construction, Snag & Handover", "method": "Inspection", "criteria": "Walk-through inspection by PM and Facilities Manager confirms all areas complete before handover.", "status": "Not Started", "owner": "Facilities Manager", "notes": "Signage and branding to be included in handover checklist.", "dueDate": "2027-01-10", "dependencies": ["FR-07"], "estimatedHours": 60, "actualHours": 0, "budgetEgp": 25000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "NFR-01", "cat": "Non-Functional", "desc": "IT systems migration must be completed within a single weekend window to minimise business disruption.", "source": "IT Director / CEO", "priority": "High", "wbs": "3.2.1", "wbs_name": "Migration Weekend Execution", "method": "Review", "criteria": "Migration complete and all systems validated by Sunday 22:00. No rollback triggered.", "status": "Not Started", "owner": "IT Director", "notes": "IT team on-site all weekend. Escalation contact available 24/7.", "dueDate": "2027-01-15", "dependencies": ["FR-05"], "estimatedHours": 48, "actualHours": 0, "budgetEgp": 20000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "NFR-02", "cat": "Non-Functional", "desc": "A documented IT rollback plan with defined triggers must be approved before the migration weekend.", "source": "IT Director", "priority": "High", "wbs": "3.1.2", "wbs_name": "Network Testing & Sign-Off", "method": "Review", "criteria": "Rollback plan document reviewed and signed off by IT Director and PM at least 7 days before migration.", "status": "Not Started", "owner": "IT Director", "notes": "Rollback triggers include: >30% system failure, data integrity failure, network unavailability.", "dueDate": "2026-12-25", "dependencies": ["FR-03"], "estimatedHours": 40, "actualHours": 0, "budgetEgp": 5000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "NFR-03", "cat": "Non-Functional", "desc": "Physical move must be executed in phases by department to maintain service continuity and avoid operational chaos.", "source": "HR / Facilities", "priority": "High", "wbs": "4.1.2", "wbs_name": "Physical Relocation", "method": "Review", "criteria": "Phased move plan approved by PM. Phase A (IT/Finance) → Phase B (HR/Sales) → Phase C (CS teams).", "status": "Not Started", "owner": "Facilities Manager", "notes": "Client-facing teams (CS) move last to protect service delivery.", "dueDate": "2027-01-31", "dependencies": ["BR-06"], "estimatedHours": 60, "actualHours": 0, "budgetEgp": 10000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "NFR-04", "cat": "Non-Functional", "desc": "All vendor contracts must include measurable SLAs, delivery milestones, and financial penalty clauses for non-performance.", "source": "Procurement Manager / CFO", "priority": "High", "wbs": "2.2.1", "wbs_name": "Space Design & Procurement", "method": "Review", "criteria": "All contracts reviewed by Legal Counsel. SLAs and penalty clauses confirmed before award.", "status": "Not Started", "owner": "Procurement Manager", "notes": "Backup vendors pre-qualified for all critical supply categories.", "dueDate": "2026-08-15", "dependencies": ["BR-01"], "estimatedHours": 80, "actualHours": 0, "budgetEgp": 15000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "NFR-05", "cat": "Non-Functional", "desc": "Any single cost variance exceeding 5% of approved budget must be escalated to COO for approval within 24 hours.", "source": "COO / CFO", "priority": "High", "wbs": "1.1.2", "wbs_name": "RAID Log & Reporting", "method": "Review", "criteria": "Escalation protocol documented and tested. Evidence that protocol was followed during project.", "status": "In Progress", "owner": "Project Manager", "notes": "Budget tolerance: ±5% at WP level, ±10% overall requires sponsor approval.", "dueDate": "2027-01-31", "dependencies": ["BR-05"], "estimatedHours": 40, "actualHours": 15, "budgetEgp": 5000, "spentEgp": 1500, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}, {"date": "2026-05-20", "text": "Status changed to In Progress. Escalation protocol drafted.", "type": "status"}]},
+  {"id": "NFR-06", "cat": "Non-Functional", "desc": "A change management and communications plan must be approved before any public announcement of the relocation.", "source": "HR Director", "priority": "High", "wbs": "4.1.1", "wbs_name": "Change Mgmt & Comms", "method": "Review", "criteria": "Comms plan signed off by HR Director and PM before any internal or external announcement.", "status": "Not Started", "owner": "HR Director", "notes": "Plan includes town hall schedule, FAQ portal, pulse survey cadence.", "dueDate": "2026-10-01", "dependencies": ["SR-04"], "estimatedHours": 50, "actualHours": 0, "budgetEgp": 10000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "RR-01", "cat": "Regulatory", "desc": "All required building and fit-out permits must be obtained from the Local Municipality before construction commences.", "source": "Local Municipality", "priority": "High", "wbs": "2.2.1", "wbs_name": "Space Design & Procurement", "method": "Review", "criteria": "All permits received in writing before 01 Oct 2026 (construction start date).", "status": "Not Started", "owner": "Legal Counsel", "notes": "Applications submitted 8 weeks ahead. Pre-submission consultation with municipality recommended.", "dueDate": "2026-10-01", "dependencies": ["SR-08"], "estimatedHours": 100, "actualHours": 0, "budgetEgp": 30000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "RR-02", "cat": "Regulatory", "desc": "A fire safety certificate must be obtained from the relevant authority before staff are permitted to occupy the new HQ.", "source": "Fire Safety Authority", "priority": "High", "wbs": "2.2.2", "wbs_name": "Construction, Snag & Handover", "method": "Inspection", "criteria": "Fire safety certificate issued and on file before any staff occupy the new building.", "status": "Not Started", "owner": "Facilities Manager", "notes": "Fire systems (suppression, alarms, emergency lighting) to be tested as part of handover.", "dueDate": "2027-01-15", "dependencies": ["FR-07"], "estimatedHours": 40, "actualHours": 0, "budgetEgp": 25000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "RR-03", "cat": "Regulatory", "desc": "Electrical installation at new HQ must pass inspection and receive a compliance certificate before occupation.", "source": "Electrical Authority", "priority": "High", "wbs": "2.2.2", "wbs_name": "Construction, Snag & Handover", "method": "Inspection", "criteria": "Electrical compliance certificate issued. All circuits tested and safe.", "status": "Not Started", "owner": "Facilities Manager", "notes": "Electrical design to comply with local regulations. Certified electrician to sign off.", "dueDate": "2027-01-15", "dependencies": ["FR-07"], "estimatedHours": 40, "actualHours": 0, "budgetEgp": 20000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "RR-04", "cat": "Regulatory", "desc": "New HQ must fully comply with workplace Health & Safety regulations before staff occupy the premises.", "source": "H&S Regulator", "priority": "High", "wbs": "2.2.2", "wbs_name": "Construction, Snag & Handover", "method": "Inspection", "criteria": "H&S audit passed. Risk assessment completed. Emergency procedures posted.", "status": "Not Started", "owner": "Facilities Manager", "notes": "H&S assessment to include manual handling, display screen, fire evacuation plan.", "dueDate": "2027-01-15", "dependencies": ["FR-07"], "estimatedHours": 60, "actualHours": 0, "budgetEgp": 15000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "RR-05", "cat": "Regulatory", "desc": "All personal and business data handled during IT migration must comply with applicable data protection regulations.", "source": "Data Protection Authority / Legal", "priority": "High", "wbs": "3.2.1", "wbs_name": "Migration Weekend Execution", "method": "Review", "criteria": "Data protection compliance report signed off by Legal Counsel. Migration log retained.", "status": "Not Started", "owner": "IT Director / Legal Counsel", "notes": "Encryption in transit and at rest required. Data minimisation principles applied.", "dueDate": "2027-01-20", "dependencies": ["FR-05"], "estimatedHours": 40, "actualHours": 0, "budgetEgp": 10000, "spentEgp": 0, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}]},
+  {"id": "RR-06", "cat": "Regulatory", "desc": "The relocation process must comply with all applicable employment law requirements, including staff consultation obligations.", "source": "Legal Counsel / Union Reps", "priority": "High", "wbs": "1.1.3", "wbs_name": "Stakeholder Engagement", "method": "Review", "criteria": "Legal sign-off confirming compliance. Union consultation records maintained throughout.", "status": "In Progress", "owner": "HR Director / Legal Counsel", "notes": "Consultation process to be documented with minutes. Any commitments to staff in writing.", "dueDate": "2027-01-31", "dependencies": ["SR-04"], "estimatedHours": 80, "actualHours": 25, "budgetEgp": 15000, "spentEgp": 4000, "history": [{"date": "2026-05-01", "text": "Requirement baselined.", "type": "baseline"}, {"date": "2026-05-10", "text": "Status changed to In Progress. Legal review initiated.", "type": "status"}, {"date": "2026-06-01", "text": "Employment law compliance checklist drafted.", "type": "note"}]}
+];
+
+const CAT_STYLES = {
+  "Business":     {bg:"#EBF8FF",color:"#2B6CB0",bd:"#90CDF4"},
+  "Stakeholder":  {bg:"#FAF5FF",color:"#6B46C1",bd:"#D6BCFA"},
+  "Functional":   {bg:"#F0FFF4",color:"#276749",bd:"#9AE6B4"},
+  "Non-Functional":{bg:"#FFFAF0",color:"#C05621",bd:"#FBD38D"},
+  "Regulatory":   {bg:"#FFF5F5",color:"#C53030",bd:"#FEB2B2"},
+};
+const PRI_STYLES = {
+  "High":   {bg:"#FFF5F5",color:"#C53030",bd:"#FEB2B2"},
+  "Medium": {bg:"#FFFAF0",color:"#C05621",bd:"#FBD38D"},
+  "Low":    {bg:"#F0FFF4",color:"#276749",bd:"#9AE6B4"},
+};
+const STA_STYLES = {
+  "Complete":    {bg:"#C6F6D5",color:"#276749",bd:"#9AE6B4"},
+  "In Progress": {bg:"#FEFCBF",color:"#744210",bd:"#F6E05E"},
+  "Not Started": {bg:"#EDF2F7",color:"#4A5568",bd:"#CBD5E0"},
+  "At Risk":     {bg:"#FFF5F5",color:"#C53030",bd:"#FEB2B2"},
+};
+
+let activeCat="all", activeSta="all", searchQ="", selId=null;
+let chartInstances = {};
+
+function calcRisk(r){
+  let score = 0;
+  if(r.priority === 'High') score += 30;
+  else if(r.priority === 'Medium') score += 20;
+  else score += 10;
+
+  if(r.status === 'Not Started') score *= 1.5;
+  else if(r.status === 'In Progress') score *= 1.0;
+  else score = 0;
+
+  const due = new Date(r.dueDate);
+  const days = Math.ceil((due - TODAY) / (1000*60*60*24));
+  if(days < 0) score += 40;
+  else if(days < 30) score += 25;
+  else if(days < 60) score += 15;
+  else if(days < 90) score += 5;
+
+  if(r.dependencies){
+    r.dependencies.forEach(depId => {
+      const dep = REQS.find(x => x.id === depId);
+      if(dep && dep.status !== 'Complete') score += 10;
+    });
+  }
+  return Math.min(100, Math.round(score));
+}
+
+function riskStyle(score){
+  if(score >= 60) return {bg:"#FFF5F5", color:"#C53030", bd:"#FEB2B2", icon:"🔴"};
+  if(score >= 35) return {bg:"#FFFAF0", color:"#C05621", bd:"#FBD38D", icon:"🟡"};
+  return {bg:"#F0FFF4", color:"#276749", bd:"#9AE6B4", icon:"🟢"};
+}
+
+function variance(r){
+  if(r.budgetEgp === 0) return 0;
+  return ((r.spentEgp - r.budgetEgp) / r.budgetEgp * 100);
+}
+
+function formatDate(d){
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+}
+
+function daysToDue(r){
+  const due = new Date(r.dueDate);
+  return Math.ceil((due - TODAY) / (1000*60*60*24));
+}
+
+function buildTable(){
+  const tbody=document.getElementById("rtm-body");
+  tbody.innerHTML="";
+  REQS.forEach(r=>{
+    const cs=CAT_STYLES[r.cat]||{bg:"#EDF2F7",color:"#4A5568",bd:"#CBD5E0"};
+    const ps=PRI_STYLES[r.priority]||PRI_STYLES["Low"];
+    const ss=STA_STYLES[r.status]||STA_STYLES["Not Started"];
+    const risk = calcRisk(r);
+    const rs = riskStyle(risk);
+    const varPct = variance(r);
+    const varClass = varPct <= 0 ? 'variance-pos' : 'variance-neg';
+    const varText = varPct === 0 && r.budgetEgp === 0 ? '—' : (varPct > 0 ? '+' : '') + varPct.toFixed(1) + '%';
+    const days = daysToDue(r);
+    const dueClass = days < 0 ? 'style="color:#C53030;font-weight:700"' : (days < 30 ? 'style="color:#C05621;font-weight:700"' : '');
+
+    const tr=document.createElement("tr");
+    tr.id="row-"+r.id;
+    tr.innerHTML=`
+      <td><span class="req-id" style="color:${cs.color}">${r.id}</span></td>
+      <td><span class="cat-badge" style="background:${cs.bg};color:${cs.color};border:1.5px solid ${cs.bd}">${r.cat}</span></td>
+      <td class="req-desc">${r.desc.length>80?r.desc.slice(0,79)+"…":r.desc}</td>
+      <td class="req-source">${r.source}</td>
+      <td><span class="pri-badge" style="background:${ps.bg};color:${ps.color};border:1.5px solid ${ps.bd}">${r.priority}</span></td>
+      <td><span class="risk-badge" style="background:${rs.bg};color:${rs.color};border:1.5px solid ${rs.bd}">${rs.icon} ${risk}</span></td>
+      <td ${dueClass}>${formatDate(r.dueDate)}</td>
+      <td><span class="wbs-chip">${r.wbs}</span></td>
+      <td style="color:#4A5568;font-size:10.5px;white-space:nowrap">${r.wbs_name}</td>
+      <td style="color:#718096;font-size:10px;white-space:nowrap">${r.method}</td>
+      <td><span class="status-badge" style="background:${ss.bg};color:${ss.color};border:1.5px solid ${ss.bd}">${r.status}</span></td>
+      <td class="req-owner">${r.owner}</td>
+      <td style="white-space:nowrap;font-size:10.5px">${r.budgetEgp.toLocaleString()}</td>
+      <td class="${varClass}" style="white-space:nowrap;font-size:10.5px">${varText}</td>`;
+    tr.addEventListener("click",()=>pick(r));
+    tbody.appendChild(tr);
+  });
+  applyFilters();
+  updateSummaryCards();
+}
+
+function applyFilters(){
+  const q=searchQ.toLowerCase();
+  REQS.forEach(r=>{
+    const tr=document.getElementById("row-"+r.id);
+    if(!tr)return;
+    const catOk = activeCat==="all"||r.cat===activeCat;
+    const staOk = activeSta==="all"||r.status===activeSta;
+    const searchOk = !q || [r.id,r.cat,r.desc,r.source,r.owner,r.wbs,r.wbs_name,r.method,r.status,r.criteria,r.notes,r.dueDate]
+      .some(f=>f.toLowerCase().includes(q));
+    tr.classList.toggle("hidden",!(catOk&&staOk&&searchOk));
+  });
+  updateCount();
+}
+
+function updateCount(){
+  const visible=REQS.filter(r=>{
+    const tr=document.getElementById("row-"+r.id);
+    return tr&&!tr.classList.contains("hidden");
+  }).length;
+  document.querySelector("#botbar .bp .bpn").textContent=visible;
+}
+
+function updateSummaryCards(){
+  const total = REQS.length;
+  const complete = REQS.filter(r=>r.status==='Complete').length;
+  const progress = REQS.filter(r=>r.status==='In Progress').length;
+  const notstarted = REQS.filter(r=>r.status==='Not Started').length;
+  const highRisk = REQS.filter(r=>calcRisk(r) > 60).length;
+  const totalBudget = REQS.reduce((a,b)=>a+b.budgetEgp,0);
+  const totalSpent = REQS.reduce((a,b)=>a+b.spentEgp,0);
+  const budgetPct = totalBudget > 0 ? Math.round(totalSpent/totalBudget*100) : 0;
+  const overdue = REQS.filter(r=>daysToDue(r) < 30 && r.status !== 'Complete').length;
+
+  document.getElementById('card-total').textContent = total;
+  document.getElementById('card-highrisk').textContent = highRisk;
+  document.getElementById('card-budget').textContent = budgetPct + '%';
+  document.getElementById('card-overdue').textContent = overdue;
+
+  document.getElementById('bot-total').textContent = total;
+  document.getElementById('bot-complete').textContent = complete;
+  document.getElementById('bot-progress').textContent = progress;
+  document.getElementById('bot-notstarted').textContent = notstarted;
+  document.getElementById('bot-high').textContent = REQS.filter(r=>r.priority==='High').length;
+  document.getElementById('bot-medium').textContent = REQS.filter(r=>r.priority==='Medium').length;
+  document.getElementById('bot-risk').textContent = highRisk;
+
+  document.getElementById('ainfo-total').textContent = total;
+  document.getElementById('ainfo-complete').textContent = complete;
+  document.getElementById('ainfo-progress').textContent = progress;
+  document.getElementById('ainfo-highrisk').textContent = highRisk;
+  document.getElementById('ainfo-budget').textContent = budgetPct + '%';
+
+  // Forecast: simple linear projection based on current velocity
+  const elapsedDays = Math.ceil((TODAY - new Date('2026-05-01')) / (1000*60*60*24));
+  const velocity = complete / (elapsedDays || 1);
+  const remaining = total - complete;
+  const daysToComplete = velocity > 0 ? Math.ceil(remaining / velocity) : 999;
+  const forecastDate = new Date(TODAY);
+  forecastDate.setDate(forecastDate.getDate() + daysToComplete);
+  const forecastStr = velocity === 0 ? 'N/A' : forecastDate.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+  document.getElementById('ainfo-forecast').textContent = forecastStr;
+}
+
+function filterCat(cat){
+  activeCat=cat; activeSta="all";
+  document.querySelectorAll(".fchip[id^='chip-']").forEach(c=>c.classList.remove("active"));
+  document.querySelectorAll(".fchip[id^='schip-']").forEach(c=>c.classList.remove("active"));
+  const chip=document.getElementById("chip-"+cat)||document.getElementById("chip-all");
+  if(chip){const cs=CAT_STYLES[cat]||{bg:"#EBF8FF",color:"#2B6CB0"};chip.classList.add("active");chip.style.background=cs.bg;chip.style.color=cs.color;}
+  applyFilters();
+}
+function filterStatus(sta){
+  activeSta=activeSta===sta?"all":sta;
+  document.querySelectorAll(".fchip[id^='schip-']").forEach(c=>c.classList.remove("active"));
+  if(activeSta!=="all"){const c=document.getElementById("schip-"+sta);if(c)c.classList.add("active");}
+  applyFilters();
+}
+function doSearch(v){searchQ=v;applyFilters();}
+function clearFilters(){
+  activeCat="all";activeSta="all";searchQ="";
+  document.getElementById("searchbox").value="";
+  document.querySelectorAll(".fchip").forEach(c=>c.classList.remove("active"));
+  const ac=document.getElementById("chip-all");
+  if(ac){ac.classList.add("active");ac.style.background="#EBF8FF";ac.style.color="#2B6CB0";}
+  applyFilters();
+}
+
+function switchView(view){
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('vbtn-'+view).classList.add('active');
+  document.getElementById('tablearea').style.display = view==='table' ? 'flex' : 'none';
+  document.getElementById('analyticsview').classList.toggle('active', view==='analytics');
+  document.getElementById('timelineview').classList.toggle('active', view==='timeline');
+  if(view==='analytics') renderAnalytics();
+  if(view==='timeline') renderTimeline();
+}
+
+function switchPTab(tab){
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.ptab-content').forEach(t=>t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('ptab-'+tab).classList.add('active');
+}
+
+function pick(r){
+  if(selId===r.id){closeP();return;}
+  selId=r.id;
+  document.querySelectorAll("tbody tr").forEach(t=>t.classList.remove("selected"));
+  const row=document.getElementById("row-"+r.id);
+  if(row){row.classList.add("selected");row.scrollIntoView({block:"nearest"});}
+
+  const cs=CAT_STYLES[r.cat]||{bg:"#EDF2F7",color:"#4A5568",bd:"#CBD5E0"};
+  const ps=PRI_STYLES[r.priority]||PRI_STYLES["Low"];
+  const ss=STA_STYLES[r.status]||STA_STYLES["Not Started"];
+  const risk = calcRisk(r);
+  const rs = riskStyle(risk);
+
+  document.getElementById("p-id").textContent=r.id;
+  document.getElementById("p-id").style.color=cs.color;
+  document.getElementById("p-title").textContent=r.desc;
+
+  const pb=document.getElementById("p-cat-badge");
+  pb.textContent=r.cat; pb.style.cssText=`background:${cs.bg};color:${cs.color};border:1.5px solid ${cs.bd};border-radius:20px;padding:2px 9px;font-size:9px;font-weight:700`;
+  const prb=document.getElementById("p-pri-badge");
+  prb.textContent=r.priority+" Priority"; prb.style.cssText=`background:${ps.bg};color:${ps.color};border:1.5px solid ${ps.bd};border-radius:5px;padding:2px 8px;font-size:9px;font-weight:700`;
+  const stb=document.getElementById("p-status-badge");
+  stb.textContent=r.status; stb.style.cssText=`background:${ss.bg};color:${ss.color};border:1.5px solid ${ss.bd};border-radius:20px;padding:2px 9px;font-size:9px;font-weight:700`;
+  const rib=document.getElementById("p-risk-badge");
+  rib.textContent = rs.icon + " Risk " + risk; rib.style.cssText = `background:${rs.bg};color:${rs.color};border:1.5px solid ${rs.bd};border-radius:20px;padding:2px 9px;font-size:9px;font-weight:700`;
+
+  document.getElementById("p-source").textContent=r.source;
+  document.getElementById("p-owner").textContent=r.owner;
+  document.getElementById("p-wbs").textContent=r.wbs;
+  document.getElementById("p-wbs").style.color=cs.color;
+  document.getElementById("p-method").textContent=r.method;
+  document.getElementById("p-wbs-name").textContent=r.wbs_name;
+  document.getElementById("p-criteria").textContent=r.criteria;
+  document.getElementById("p-notes").textContent=r.notes;
+  document.getElementById("p-desc").textContent=r.desc;
+  document.getElementById("p-due").textContent = formatDate(r.dueDate) + " (" + daysToDue(r) + " days)";
+  document.getElementById("p-risk").textContent = risk + "/100 — " + (risk >= 60 ? "HIGH" : risk >= 35 ? "MEDIUM" : "LOW");
+  document.getElementById("p-risk").style.color = rs.color;
+
+  // Dependencies tab
+  const depList = r.dependencies && r.dependencies.length > 0 ? r.dependencies.map(depId => {
+    const dep = REQS.find(x => x.id === depId);
+    const depRisk = dep ? calcRisk(dep) : 0;
+    const depRs = dep ? riskStyle(depRisk) : {color:'#718096'};
+    const depStatus = dep ? dep.status : 'Unknown';
+    return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px"><span style="font-weight:700;color:${depRs.color}">${depId}</span><span style="font-size:9px;color:#718096">${depStatus}</span>${dep && dep.status !== 'Complete' ? '<span style="font-size:9px;color:#C53030">⚠ Blocking</span>' : '<span style="font-size:9px;color:#276749">✓ Clear</span>'}</div>`;
+  }).join('') : '<div style="color:#718096;font-size:11px">No dependencies</div>';
+  document.getElementById("p-deps-list").innerHTML = depList;
+
+  // Impact analysis
+  const impacted = REQS.filter(x => x.dependencies && x.dependencies.includes(r.id));
+  const impactText = impacted.length > 0 
+    ? `If this requirement slips, <b>${impacted.length}</b> downstream requirement(s) will be affected: <b>${impacted.map(x=>x.id).join(', ')}</b>.`
+    : "No downstream requirements depend on this item.";
+  document.getElementById("p-impact").innerHTML = impactText;
+
+  // Budget tab
+  const varPct = variance(r);
+  const varText = r.budgetEgp === 0 ? 'No budget allocated' : `Budget: <b>EGP ${r.budgetEgp.toLocaleString()}</b><br>Spent: <b>EGP ${r.spentEgp.toLocaleString()}</b><br>Variance: <b style="color:${varPct > 0 ? '#C53030' : '#276749'}">${varPct > 0 ? '+' : ''}${varPct.toFixed(1)}%</b>`;
+  document.getElementById("p-budget").innerHTML = varText;
+
+  const effortText = `Estimated: <b>${r.estimatedHours} hrs</b><br>Actual: <b>${r.actualHours} hrs</b><br>Remaining: <b>${Math.max(0, r.estimatedHours - r.actualHours)} hrs</b><br>Utilization: <b>${r.estimatedHours > 0 ? Math.round(r.actualHours/r.estimatedHours*100) : 0}%</b>`;
+  document.getElementById("p-effort").innerHTML = effortText;
+
+  // WBS tree in panel
+  const wbsParts = r.wbs.split('.');
+  let wbsHtml = `<div class="wbs-node" style="padding-left:0"><div class="wbs-node-head" style="font-weight:700;color:#2B6CB0">📁 Project HQ Relocation</div>`;
+  wbsParts.forEach((part, idx) => {
+    const prefix = wbsParts.slice(0, idx+1).join('.');
+    const reqsUnder = REQS.filter(x => x.wbs === prefix || x.wbs.startsWith(prefix + '.'));
+    wbsHtml += `<div class="wbs-node"><div class="wbs-node-head">${'  '.repeat(idx+1)}📂 ${prefix} <span class="wbs-req-count">${reqsUnder.length} req</span></div></div>`;
+  });
+  wbsHtml += '</div>';
+  document.getElementById("p-wbs-tree").innerHTML = wbsHtml;
+
+  // History tab
+  const histHtml = r.history.map(h => {
+    const dotColor = h.type === 'baseline' ? '#3182CE' : h.type === 'status' ? '#D69E2E' : '#38A169';
+    return `<div class="history-item"><div class="history-dot" style="background:${dotColor}"></div><div><div class="history-date">${h.date}</div><div class="history-text">${h.text}</div></div></div>`;
+  }).join('');
+  document.getElementById("p-history").innerHTML = histHtml || '<div style="color:#718096;font-size:11px">No history recorded</div>';
+
+  document.getElementById("panel").classList.add("open");
+}
+function closeP(){
+  selId=null;
+  document.querySelectorAll("tbody tr").forEach(t=>t.classList.remove("selected"));
+  document.getElementById("panel").classList.remove("open");
+}
+
+function renderAnalytics(){
+  if(chartInstances.cat) return; // already rendered
+
+  // Category pie chart
+  const catCounts = {};
+  REQS.forEach(r => catCounts[r.cat] = (catCounts[r.cat]||0)+1);
+  const catLabels = Object.keys(catCounts);
+  const catData = Object.values(catCounts);
+  const catColors = catLabels.map(l => CAT_STYLES[l].color);
+  const ctxCat = document.getElementById('chart-cat').getContext('2d');
+  chartInstances.cat = new Chart(ctxCat, {
+    type: 'doughnut',
+    data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: catColors, borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+  });
+
+  // Status bar chart
+  const staCounts = {"Complete":0, "In Progress":0, "Not Started":0};
+  REQS.forEach(r => staCounts[r.status] = (staCounts[r.status]||0)+1);
+  const ctxSta = document.getElementById('chart-status').getContext('2d');
+  chartInstances.status = new Chart(ctxSta, {
+    type: 'bar',
+    data: { labels: Object.keys(staCounts), datasets: [{ label: 'Requirements', data: Object.values(staCounts), backgroundColor: ['#276749','#D69E2E','#A0AEC0'], borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } } }
+  });
+
+  // Risk histogram
+  const riskBuckets = {"0-20":0, "21-35":0, "36-60":0, "61-100":0};
+  REQS.forEach(r => {
+    const risk = calcRisk(r);
+    if(risk <= 20) riskBuckets["0-20"]++;
+    else if(risk <= 35) riskBuckets["21-35"]++;
+    else if(risk <= 60) riskBuckets["36-60"]++;
+    else riskBuckets["61-100"]++;
+  });
+  const ctxRisk = document.getElementById('chart-risk').getContext('2d');
+  chartInstances.risk = new Chart(ctxRisk, {
+    type: 'bar',
+    data: { labels: Object.keys(riskBuckets), datasets: [{ label: 'Requirements', data: Object.values(riskBuckets), backgroundColor: ['#9AE6B4','#F6E05E','#FBD38D','#FEB2B2'], borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  // Budget vs Spent by category
+  const catBudget = {}, catSpent = {};
+  REQS.forEach(r => { catBudget[r.cat] = (catBudget[r.cat]||0)+r.budgetEgp; catSpent[r.cat] = (catSpent[r.cat]||0)+r.spentEgp; });
+  const ctxBudget = document.getElementById('chart-budget').getContext('2d');
+  chartInstances.budget = new Chart(ctxBudget, {
+    type: 'bar',
+    data: { labels: Object.keys(catBudget), datasets: [
+      { label: 'Budget', data: Object.values(catBudget), backgroundColor: '#90CDF4', borderRadius: 6 },
+      { label: 'Spent', data: Object.values(catSpent), backgroundColor: '#2B6CB0', borderRadius: 6 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  // Owner workload
+  const ownerCounts = {};
+  REQS.forEach(r => { ownerCounts[r.owner] = (ownerCounts[r.owner]||0)+1; });
+  const ownerLabels = Object.keys(ownerCounts).sort((a,b)=>ownerCounts[b]-ownerCounts[a]);
+  const ownerData = ownerLabels.map(o => ownerCounts[o]);
+  const ctxOwner = document.getElementById('chart-owner').getContext('2d');
+  chartInstances.owner = new Chart(ctxOwner, {
+    type: 'bar',
+    data: { labels: ownerLabels, datasets: [{ label: 'Requirements', data: ownerData, backgroundColor: '#6B46C1', borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+  });
+
+  // Heatmap canvas
+  const heatCanvas = document.getElementById('chart-heatmap');
+  const heatCtx = heatCanvas.getContext('2d');
+  const priorities = ['High','Medium','Low'];
+  const statuses = ['Complete','In Progress','Not Started'];
+  const heatData = priorities.map(p => statuses.map(s => REQS.filter(r=>r.priority===p && r.status===s).length));
+  const maxVal = Math.max(...heatData.flat());
+
+  function drawHeatmap(){
+    const w = heatCanvas.parentElement.clientWidth;
+    const h = heatCanvas.parentElement.clientHeight;
+    heatCanvas.width = w; heatCanvas.height = h;
+    const cellW = w / statuses.length;
+    const cellH = h / priorities.length;
+    const headerH = 20;
+
+    heatCtx.clearRect(0,0,w,h);
+    heatCtx.fillStyle = '#F7FAFC'; heatCtx.fillRect(0,0,w,h);
+
+    // Headers
+    heatCtx.font = 'bold 10px Inter';
+    heatCtx.fillStyle = '#4A5568';
+    statuses.forEach((s,i) => { heatCtx.textAlign = 'center'; heatCtx.fillText(s, i*cellW + cellW/2, 14); });
+    priorities.forEach((p,i) => { heatCtx.textAlign = 'right'; heatCtx.fillText(p, cellW*statuses.length - 4, i*cellH + headerH + cellH/2 + 4); });
+
+    heatData.forEach((row, ri) => {
+      row.forEach((val, ci) => {
+        const intensity = maxVal > 0 ? val / maxVal : 0;
+        const r = Math.round(49 + intensity * 176);
+        const g = Math.round(151 + intensity * 54);
+        const b = Math.round(149 + intensity * 106);
+        heatCtx.fillStyle = `rgb(${r},${g},${b})`;
+        heatCtx.fillRect(ci*cellW, ri*cellH + headerH, cellW-2, cellH-2);
+        heatCtx.fillStyle = intensity > 0.5 ? 'white' : '#2D3748';
+        heatCtx.font = 'bold 12px Inter';
+        heatCtx.textAlign = 'center';
+        heatCtx.fillText(val, ci*cellW + cellW/2, ri*cellH + headerH + cellH/2 + 5);
+      });
+    });
+  }
+  drawHeatmap();
+  window.addEventListener('resize', drawHeatmap);
+
+  // WBS Tree
+  const wbsTree = {};
+  REQS.forEach(r => {
+    const parts = r.wbs.split('.');
+    let node = wbsTree;
+    parts.forEach((p, i) => {
+      const key = parts.slice(0, i+1).join('.');
+      if(!node[key]) node[key] = { children: {}, reqs: 0, budget: 0, spent: 0 };
+      node[key].reqs++;
+      node[key].budget += r.budgetEgp;
+      node[key].spent += r.spentEgp;
+      node = node[key].children;
+    });
+  });
+  function renderWBSNode(node, level=0){
+    let html = '';
+    Object.keys(node).sort().forEach(key => {
+      const n = node[key];
+      const indent = level * 20;
+      html += `<div class="wbs-node" style="padding-left:${indent}px"><div class="wbs-node-head">📂 ${key} <span class="wbs-req-count">${n.reqs} req</span><span class="wbs-budget">EGP ${n.spent.toLocaleString()} / ${n.budget.toLocaleString()}</span></div></div>`;
+      html += renderWBSNode(n.children, level+1);
+    });
+    return html;
+  }
+  document.getElementById('wbs-tree-analytics').innerHTML = '<div style="padding-left:0"><div class="wbs-node-head" style="font-weight:700;color:#2B6CB0">📁 HQ Relocation Project</div>' + renderWBSNode(wbsTree) + '</div>';
+}
+
+function renderTimeline(){
+  const container = document.getElementById('tl-chart');
+  container.innerHTML = '';
+
+  // Find min/max dates
+  const allDates = REQS.map(r => new Date(r.dueDate));
+  const minDate = new Date(Math.min(...allDates));
+  minDate.setDate(minDate.getDate() - 30);
+  const maxDate = new Date(Math.max(...allDates));
+  maxDate.setDate(maxDate.getDate() + 30);
+  const totalDays = (maxDate - minDate) / (1000*60*60*24);
+
+  // Month ticks
+  const ticksDiv = document.createElement('div');
+  ticksDiv.className = 'tl-ticks';
+  const months = [];
+  let d = new Date(minDate);
+  while(d <= maxDate){
+    months.push(new Date(d));
+    d.setMonth(d.getMonth() + 1);
+  }
+  months.forEach(m => {
+    const tick = document.createElement('div');
+    tick.className = 'tl-tick';
+    tick.textContent = m.toLocaleDateString('en-GB', {month:'short', year:'2-digit'});
+    tick.style.flex = '1';
+    ticksDiv.appendChild(tick);
+  });
+  container.appendChild(ticksDiv);
+
+  // Sort by due date
+  const sorted = [...REQS].sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  sorted.forEach(r => {
+    const due = new Date(r.dueDate);
+    const daysFromStart = (due - minDate) / (1000*60*60*24);
+    const leftPct = (daysFromStart / totalDays) * 100;
+    const widthPct = Math.max(3, (15 / totalDays) * 100);
+
+    let barColor = '#A0AEC0';
+    if(r.status === 'Complete') barColor = '#276749';
+    else if(r.status === 'In Progress') barColor = '#D69E2E';
+    else if(due < TODAY) barColor = '#C53030';
+
+    const row = document.createElement('div');
+    row.className = 'tl-row';
+    row.innerHTML = `
+      <div class="tl-label" title="${r.id}">${r.id}</div>
+      <div class="tl-track">
+        <div class="tl-bar" style="left:${leftPct}%;width:${widthPct}%;background:${barColor}" title="${r.desc} — Due: ${formatDate(r.dueDate)} — Status: ${r.status}">${r.id}</div>
+      </div>
+    `;
+    row.querySelector('.tl-bar').addEventListener('click', () => { switchView('table'); pick(r); });
+    container.appendChild(row);
+  });
+}
+
+function exportCSV(){
+  const headers = ['ID','Category','Description','Source','Priority','Risk Score','Due Date','WBS','Work Package','Verification','Status','Owner','Budget EGP','Spent EGP','Variance %','Estimated Hours','Actual Hours','Dependencies','Acceptance Criteria','Notes'];
+  let csv = headers.join(',') + '\n';
+  REQS.forEach(r => {
+    const deps = (r.dependencies || []).join(';');
+    const row = [
+      r.id, r.cat, '"' + r.desc.replace(/"/g,'""') + '"', r.source, r.priority, calcRisk(r), r.dueDate, r.wbs, r.wbs_name, r.method, r.status, r.owner, r.budgetEgp, r.spentEgp, variance(r).toFixed(1), r.estimatedHours, r.actualHours, deps, '"' + r.criteria.replace(/"/g,'""') + '"', '"' + r.notes.replace(/"/g,'""') + '"'
+    ];
+    csv += row.join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'HQ_Relocation_RTM_Analytics_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Init
+buildTable();
+clearFilters();
+</script>
+</body>
+</html>
